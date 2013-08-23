@@ -105,7 +105,154 @@ $router->register({
     $preps{'submittestresult'}->execute($username, $module, $version, $rawdata);
     $req->respond([200, 'dumbass', {'Content-Type' => 'application/json'}, j({success => 1})]);
     return 1;
-  }
+  },
+  ('^' . $prefs->{'base'} . '/register$') => sub {
+    my $req = shift;
+    my $data;
+    try { $data = j($req->content); } catch { undef $data; }; 
+    if (not defined $data) {
+      $req->respond([200, 'dumbass', {'Content-Type' => 'application/json'}, j({failure => 1, reason => 'Send some POST data'})]);
+      return 1;
+    }
+    my $user = $data->{'username'};
+    my $pass = sha256_hex($data->{'password'} . $prefs->{'salt'});
+
+    if (not defined $preps{'checkusernameavail'}) {
+      $preps{'checkusernameavail'} = $dbh->prepare('select count(username) from users where username = ?');
+    }
+    $preps{'checkusernameavail'}->execute($user);
+    my $rowc = $preps{'checkusernameavail'}->fetchrow_array();
+    if ($rowc != 0) {
+      $req->respond([200, 'dumbass', {'Content-Type' => 'application/json'}, j({failure => 1, reason => 'Username already in use'})]);
+      return 1;
+    }
+    
+    if (not defined $preps{'newuser'}) {
+      $preps{'newuser'} = $dbh->prepare('insert into users (username, password, uq) values  (?, ?, ?)');
+    }
+    my $uk = sha256_hex(time . $prefs->{'sessionkey'});
+    $preps{'newuser'}->execute($user, $pass, $uk);
+
+    $req->respond([200, 'dumbass', {'Content-Type' => 'application/json'}, j({success => 1, newkey => $uk})]);
+    return 1;
+  },
+  ('^' . $prefs->{'base'} . '/push$') => sub {
+    my $req = shift;
+    my $data;
+    try { $data = j($req->content); } catch { undef $data; }; 
+    if (not defined $data) {
+      $req->respond([200, 'dumbass', {'Content-Type' => 'application/json'}, j({failure => 1, reason => 'Send some POST data'})]);
+      return 1;
+    }
+    if (not defined $data->{'key'} || not defined $data->{'meta'} || not defined $data->{'meta'}->{'repository'} || not defined $data->{'meta'}->{'name'}) {
+      $req->respond([200, 'dumbass', {'Content-Type' => 'application/json'}, j({failure => 1, reason => 'Invalid request..need {key:<>, meta:{repository:<>,name:<>}}'})]);
+      return 1;
+    }
+    if (not defined $preps{'getuseridwkey'}) {
+      $preps{'getuseridwkey'} = $dbh->prepare('select id, username from users where uq = ?');
+    }
+    $preps{'getuseridwkey'}->execute($data->{'key'});
+    my ($id, $user) = $preps{'getuseridwkey'}->fetchrow_array();
+    if (not defined $id || $id eq '') {
+      $req->respond([200, 'dumbass', {'Content-Type' => 'application/json'}, j({error => 'Couldn\'t find user with specified key'})]);
+      return 1;
+    }
+    my $cmd    = 'git ls-remote \'' . ($data->{'meta'}->{'repository'} =~ s{'}{'"'"'}rg) . '\' |grep HEAD |awk \'{ print $1; }\'';
+    my $commit = `$cmd`;
+    chomp $commit;
+    if (not defined $commit || ($commit ~~ qr{^[a-fA-F0-9]{40,64}$}) == 1) {
+      $req->respond([200, 'dumbass', {'Content-Type' => 'application/json'}, j({error => 'Couldn\'t reach repository or received bad data'})]);
+      return 1;
+    }
+   
+    if (not defined $preps{'getmoduleversion'}) {
+      $preps{'getmoduleversion'} = $dbh->prepare('select version from packages where name = ? and owner = ? order by submitted desc limit 0, 1');
+    }
+    $preps{'getmoduleversion'}->execute($data->{'meta'}->{'name'}, "ZEF:$user");
+
+    my $cv = $preps{'getmoduleversion'}->fetchrow_array();
+    my $version = '1.0.0';
+    if (defined $cv && $cv ne '') {
+      my @versplit = split(/\./, $cv, 4);
+      $version  = ((defined $data->{'majorvs'} && $data->{'majorvs'}) ? @versplit[0] + 1 : @versplit[0]) . '.';
+      $version .= ((defined $data->{'minorvs'} && $data->{'minorvs'}) ? @versplit[1] + 1 : @versplit[1]) . '.';
+      $version .= ((defined $data->{'majorvs'} && $data->{'majorvs'}) || (defined $data->{'minorvs'} && $data->{'minorvs'}) ? '0' : @versplit[2] + 1);
+    }
+
+    my $depends = defined $data->{'meta'}->{'dependencies'} ? j($data->{'meta'}->{'dependencies'}) : '{}';
+    if (not defined $preps{'addpackage'}) {
+      $preps{'addpackage'} = $dbh->prepare('insert into packages (name, owner, dependencies, version, repo, commit) values (?, ?, ?, ?, ?, ?)');
+    }
+    $preps{'addpackage'}->execute($data->{'meta'}->{'name'}, "ZEF:$user", $depends, $version, $data->{'meta'}->{'repository'}, $commit);
+
+    $req->respond([200, 'dumbass', {'Content-Type' => 'application/json'}, j({latestcommit => $commit, version => $version})]);
+    return 1;
+  },
+  ('^' . $prefs->{'base'} . '/search$') => sub {
+    my $req = shift;
+    my $data;
+    try { $data = j($req->content); } catch { undef $data; }; 
+    if (not defined $data) {
+      $req->respond([200, 'dumbass', {'Content-Type' => 'application/json'}, j({failure => 1, reason => 'Send some POST data'})]);
+      return 1;
+    }
+    if (not defined $data->{'query'}) {
+      $req->respond([200, 'dumbass', {'Content-Type' => 'application/json'}, j({failure => 1, reason => '{query:<>} required and not found'})]);
+      return 1;
+    }
+    my $paged = defined $data->{'page'} && $data->{'page'} ~~ qr{^\d+$} ? $data->{'page'} * 50 : 0;
+    if (not defined $preps{'pagedsearch'}) {
+      $preps{'pagedsearch'} = $dbh->prepare('select p2.name, p2.owner, p2.version, p2.submitted from ( select distinct name, owner from packages limit ?, 50) p1 left outer join ( select p3.* from ( select name,owner, version,submitted from packages order by id desc) p3 group by name, owner) p2 on p1.owner = p2.owner and p1.name = p2.name where upper(p1.owner) like ? or upper(p1.name) like ?'); 
+    }
+    $preps{'pagedsearch'}->execute($paged, '%' . uc($data->{'query'}) . '%', '%' . uc($data->{'query'}) . '%');
+    my $returndata = [];
+    while (my @row = $preps{'pagedsearch'}->fetchrow_array()) {
+      push($returndata, {name => @row[0], owner => @row[1], version => @row[2], submitted => @row[3]});
+    }
+    $req->respond([200, 'dumbass', {'Content-Type' => 'application/json'}, j($returndata)]);
+    return 1;
+  },
+  ('^' . $prefs->{'base'} . '/download$') => sub {
+    my $req = shift;
+    my $data;
+    try { $data = j($req->content); } catch { undef $data; }; 
+    if (not defined $data) {
+      $req->respond([200, 'dumbass', {'Content-Type' => 'application/json'}, j({failure => 1, reason => 'Send some POST data'})]);
+      return 1;
+    }
+    if (not defined $data->{'name'}) {
+      $req->respond([200, 'dumbass', {'Content-Type' => 'application/json'}, j({failure => 1, reason => '{name:<>} required but not found'})]);
+      return 1;
+    }
+    my @args;
+    my $sql = 'select repo,commit,version,owner,id,dependencies from packages where name = ?';
+    $sql   .= ' and owner = ? '  if defined $data->{'author'};
+    $sql   .= ' and version = ?' if defined $data->{'version'};
+    $sql   .= ' order by id desc limit 0, 1';
+    my $sth = $dbh->prepare($sql);
+    push(@args, $data->{'name'});
+    push(@args, $data->{'author'})  if defined $data->{'author'};
+    push(@args, $data->{'version'}) if defined $data->{'version'};
+
+    $sth->execute(@args);
+
+    my @pkg = $sth->fetchrow_array;
+
+    my $data = { };
+    if (@pkg != 0) {
+      $data = {repo => @pkg[0], commit => @pkg[1], version => @pkg[2], author => @pkg[3]};
+      my $depends = [ ];
+      print @pkg[5];
+      try { $depends = j(@pkg[5]); } catch { $depends = [ ]; };
+      $data->{'dependencies'} = $depends;
+    }
+    my $pkgid = @pkg[4];
+    print "download for $pkgid";
+    $dbh->do("update packages set downloads = downloads+1 where id = $pkgid");
+    $req->respond([200, 'dumbass', {'Content-Type' => 'application/json'}, j($data)]);
+    $sth->finish;
+    return 1;
+  },
 });
 
 $server->reg_cb(
