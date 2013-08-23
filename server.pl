@@ -11,10 +11,10 @@ use Data::Dumper;
 use Try::Tiny;
 use DBI;
 
-my $server = AnyEvent::HTTPD->new (port => 9001);
-my $router = AnyEvent::HTTPD::REST::Router->new;
 my $prefst = slurp 'prefs.json';
 my $prefs  = j($prefst);
+my $server = AnyEvent::HTTPD->new (port => $prefs->{'port'} || 9000);
+my $router = AnyEvent::HTTPD::REST::Router->new;
 my $dbh    = DBI->connect($prefs->{'db'}->{'db'}, $prefs->{'db'}->{'user'}, $prefs->{'db'}->{'pass'}) || die 'couldn\'t connect to db';
 my %preps;
 
