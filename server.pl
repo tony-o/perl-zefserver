@@ -259,8 +259,11 @@ $router->register({
       $data->{'dependencies'} = $depends;
     }
     my $pkgid = @pkg[4];
-    print "download for $pkgid";
-    $dbh->do("update packages set downloads = downloads+1 where id = $pkgid");
+   
+    if (not defined $preps{'downloadpkg'}) {
+      $preps{'downloadpkg'} = $dbg->prepare('insert into downloads (pkg, meta) values (?,?);');
+    }
+    try { $preps->execute($pkgid, $data->{'meta'}); } catch { };
     $req->respond([200, 'dumbass', {'Content-Type' => 'application/json'}, j($data)]);
     $sth->finish;
     return 1;
