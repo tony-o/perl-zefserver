@@ -261,7 +261,7 @@ $router->register({
     my $pkgid = @pkg[4];
    
     if (not defined $preps{'downloadpkg'}) {
-      $preps{'downloadpkg'} = $dbg->prepare('insert into downloads (pkg, meta) values (?,?);');
+      $preps{'downloadpkg'} = $dbh->prepare('insert into downloads (pkg, meta) values (?,?);');
     }
     try { $preps->execute($pkgid, $data->{'meta'}); } catch { };
     $req->respond([200, 'dumbass', {'Content-Type' => 'application/json'}, j($data)]);
