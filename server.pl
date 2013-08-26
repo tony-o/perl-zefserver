@@ -15,11 +15,18 @@ my $prefst = slurp 'prefs.json';
 my $prefs  = j($prefst);
 my $server = AnyEvent::HTTPD->new (port => $prefs->{'port'} || 9000);
 my $router = AnyEvent::HTTPD::REST::Router->new;
-my $dbh    = DBI->connect($prefs->{'db'}->{'db'}, $prefs->{'db'}->{'user'}, $prefs->{'db'}->{'pass'}) || die 'couldn\'t connect to db';
+my $dbh;
 my %preps;
+
+sub reconnect {
+  return if (defined $dbh && $dbh->ping); 
+  $dbh = DBI->connect($prefs->{'db'}->{'db'}, $prefs->{'db'}->{'user'}, $prefs->{'db'}->{'pass'}) || die 'couldn\'t connect to db';
+  undef %preps;
+}
 
 $router->register({
   ('^' . $prefs->{'base'} . '/login$') => sub{ 
+    reconnect;
     my $req = shift;
     my $data;
     try { $data = j($req->content); } catch { undef $data; }; 
@@ -52,6 +59,7 @@ $router->register({
     return 1;
   },
   ('^' . $prefs->{'base'} . '/testresult$') => sub {
+    reconnect;
     my $req = shift;
     my $data; 
     try { $data = j($req->content); } catch { undef $data; }; 
@@ -107,6 +115,7 @@ $router->register({
     return 1;
   },
   ('^' . $prefs->{'base'} . '/register$') => sub {
+    reconnect;
     my $req = shift;
     my $data;
     try { $data = j($req->content); } catch { undef $data; }; 
@@ -137,6 +146,7 @@ $router->register({
     return 1;
   },
   ('^' . $prefs->{'base'} . '/push$') => sub {
+    reconnect;
     my $req = shift;
     my $data;
     try { $data = j($req->content); } catch { undef $data; }; 
@@ -189,6 +199,7 @@ $router->register({
     return 1;
   },
   ('^' . $prefs->{'base'} . '/search$') => sub {
+    reconnect;
     my $req = shift;
     my $data;
     try { $data = j($req->content); } catch { undef $data; }; 
@@ -213,6 +224,7 @@ $router->register({
     return 1;
   },
   ('^' . $prefs->{'base'} . '/download$') => sub {
+    reconnect;
     my $req = shift;
     my $data;
     try { $data = j($req->content); } catch { undef $data; }; 
