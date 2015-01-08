@@ -13,7 +13,10 @@ use DBI;
 
 my $prefst = slurp 'prefs.json';
 my $prefs  = j($prefst);
-my $server = AnyEvent::HTTPD->new (port => $prefs->{'port'} || 9000);
+my $server = AnyEvent::HTTPD->new (
+               port => $prefs->{'port'} || 9000,
+               ssl  => { cert_file => 'ssl.pem' },
+             );
 my $router = AnyEvent::HTTPD::REST::Router->new;
 my $dbh;
 my %preps;
