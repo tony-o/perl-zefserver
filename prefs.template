@@ -6,5 +6,6 @@
   },
   "salt"      : "lick",
   "sessionkey": "freeAnders",
-  "base"      : ""
+  "base"      : "",
+  "cert"      : "path to cert"
 }

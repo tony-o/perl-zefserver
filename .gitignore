@@ -1,3 +1,6 @@
 prefs.json
 www/
 *.pem
+*.crt
+*.key
+*.csr

@@ -6,6 +6,7 @@ use AnyEvent::HTTPD::REST::Router;
 use Digest::SHA qw{sha256_hex};
 use File::Slurp qw{slurp};
 use JSON::Tiny qw{j};
+use Cwd qw{abs_path};
 use AnyEvent::HTTPD;
 use Data::Dumper;
 use Try::Tiny;
@@ -15,7 +16,9 @@ my $prefst = slurp 'prefs.json';
 my $prefs  = j($prefst);
 my $server = AnyEvent::HTTPD->new (
                port => $prefs->{'port'} || 9000,
-               ssl  => { cert_file => 'ssl.pem' },
+               ssl  => { 
+                         cert_file => $prefs->{'cert'},
+                       },  
              );
 my $router = AnyEvent::HTTPD::REST::Router->new;
 my $dbh;
