@@ -4,11 +4,16 @@ use lib 'lib';
 use v5;
 use AnyEvent::HTTPD::REST::Router;
 use Digest::SHA qw{sha256_hex};
+use File::Path qw{make_path};
+use File::Temp qw{tempdir};
 use File::Slurp qw{slurp};
 use JSON::Tiny qw{j};
 use Cwd qw{abs_path};
 use AnyEvent::HTTPD;
+use File::Basename;
+use MIME::Base64;
 use Data::Dumper;
+use File::Copy;
 use Try::Tiny;
 use DBI;
 
@@ -16,9 +21,6 @@ my $prefst = slurp 'prefs.json';
 my $prefs  = j($prefst);
 my $server = AnyEvent::HTTPD->new (
                port => $prefs->{'port'} || 9000,
-               ssl  => { 
-                         cert_file => $prefs->{'cert'},
-                       },  
              );
 my $router = AnyEvent::HTTPD::REST::Router->new;
 my $dbh;
@@ -160,8 +162,8 @@ $router->register({
       $req->respond([200, 'dumbass', {'Content-Type' => 'application/json'}, j({failure => 1, reason => 'Send some POST data'})]);
       return 1;
     }
-    if (not defined $data->{'key'} || not defined $data->{'meta'} || not defined $data->{'meta'}->{'repository'} || not defined $data->{'meta'}->{'name'}) {
-      $req->respond([200, 'dumbass', {'Content-Type' => 'application/json'}, j({failure => 1, reason => 'Invalid request..need {key:<>, meta:{repository:<>,name:<>}}'})]);
+    if (! ( defined $data->{'key'} && defined $data->{'meta'} && defined $data->{'data'}) ) {
+      $req->respond([200, 'dumbass', {'Content-Type' => 'application/json'}, j({failure => 1, reason => 'Invalid request..need {key:<>, meta:{}, data:{}}'})]);
       return 1;
     }
     if (not defined $preps{'getuseridwkey'}) {
@@ -169,37 +171,54 @@ $router->register({
     }
     $preps{'getuseridwkey'}->execute($data->{'key'});
     my ($id, $user) = $preps{'getuseridwkey'}->fetchrow_array();
-    if (not defined $id || $id eq '') {
+    if (not defined $id || $id ne '') {
       $req->respond([200, 'dumbass', {'Content-Type' => 'application/json'}, j({error => 'Couldn\'t find user with specified key'})]);
       return 1;
     }
-    my $cmd    = 'git ls-remote \'' . ($data->{'meta'}->{'repository'} =~ s{'}{'"'"'}rg) . '\' |grep HEAD |awk \'{ print $1; }\'';
-    my $commit = `$cmd`;
-    chomp $commit;
-    if (not defined $commit || ($commit ~~ qr{^[a-fA-F0-9]{40,64}$}) == 1) {
-      $req->respond([200, 'dumbass', {'Content-Type' => 'application/json'}, j({error => 'Couldn\'t reach repository or received bad data'})]);
+    if (not defined $data->{'meta'}->{'version'}) {
+      $req->respond([200, 'dumbass', {'Content-Type' => 'application/json'}, j({error => 'Please supply a version # in your META'})]);
       return 1;
     }
-   
-    if (not defined $preps{'getmoduleversion'}) {
-      $preps{'getmoduleversion'} = $dbh->prepare('select version from packages where name = ? and owner = ? order by submitted desc limit 0, 1');
+    if (not defined $preps{'idgrab'}) {
+      $preps{'idgrab'} = $dbh->prepare('select id from packages where name = ? and owner = ? and version = ?');
     }
-    $preps{'getmoduleversion'}->execute($data->{'meta'}->{'name'}, "ZEF:$user");
-
-    my $cv = $preps{'getmoduleversion'}->fetchrow_array();
-    my $version = '1.0.0';
-    if (defined $cv && $cv ne '') {
-      my @versplit = split(/\./, $cv, 4);
-      $version  = ((defined $data->{'majorvs'} && $data->{'majorvs'}) ? @versplit[0] + 1 : @versplit[0]) . '.';
-      $version .= ((defined $data->{'minorvs'} && $data->{'minorvs'}) ? @versplit[1] + 1 : @versplit[1]) . '.';
-      $version .= ((defined $data->{'majorvs'} && $data->{'majorvs'}) || (defined $data->{'minorvs'} && $data->{'minorvs'}) ? '0' : @versplit[2] + 1);
+    $preps{'idgrab'}->execute($data->{'meta'}->{'name'}, "ZEF:$user", $data->{'meta'}->{'version'});
+    my ($id) = $preps{'idgrab'}->fetchrow_array();
+    if (defined $id || $id ne '') {
+      $req->respond([200, 'dumbass', {'Content-Type' => 'application/json'}, j({error => 'This version from you already exists, bump your version #'})]);
+      return 1;
     }
-
+    my $version = $data->{'meta'}->{'version'};
+    my $i = 0;
+    my $f = 0;
+    my $d = tempdir();
+    foreach my $file (split "\r\n", $data->{'data'}) {
+      if ($i % 2 == 0) {
+        $f = $file; 
+      } else {
+        make_path($d . dirname($f));
+        open(my $fh, '>', $d . $f);
+        print $fh decode_base64($file);
+        close $fh;
+      }
+      $i++;
+    }
+    make_path("./modules");
     my $depends = defined $data->{'meta'}->{'dependencies'} ? j($data->{'meta'}->{'dependencies'}) : '{}';
     if (not defined $preps{'addpackage'}) {
-      $preps{'addpackage'} = $dbh->prepare('insert into packages (name, owner, dependencies, version, repo, commit) values (?, ?, ?, ?, ?, ?)');
+      $preps{'addpackage'} = $dbh->prepare('insert into packages (name, owner, dependencies, version, repo) values (?, ?, ?, ?, ?)');
+      $preps{'idgrab'}     = $dbh->prepare('select id from packages where name = ? and owner = ? and version = ?');
     }
-    $preps{'addpackage'}->execute($data->{'meta'}->{'name'}, "ZEF:$user", $depends, $version, $data->{'meta'}->{'repository'}, $commit);
+    $preps{'addpackage'}->execute(
+      $data->{'meta'}->{'name'}, 
+      "ZEF:$user", 
+      $depends, 
+      $version, 
+      defined $data->{'meta'}->{'repository'} ? $data->{'meta'}->{'repository'} : defined $data->{'meta'}->{'support'} && defined $data->{'meta'}->{'support'}->{'source-url'} ?  $data->{'meta'}->{'support'}->{'source-url'} : '', 
+    );
+    $preps{'idgrab'}->execute($data->{'meta'}->{'name'}, "ZEF:$user", $version);
+    ($id) = $preps{'idgrab'}->fetchrow_array();
+    move($d, "./modules/$id/");
 
     $req->respond([200, 'dumbass', {'Content-Type' => 'application/json'}, j({latestcommit => $commit, version => $version})]);
     return 1;
