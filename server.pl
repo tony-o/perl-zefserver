@@ -8,6 +8,7 @@ use File::Path qw{make_path};
 use File::Temp qw{tempdir};
 use File::Slurp qw{slurp};
 use JSON::Tiny qw{j};
+use Text::Handlebars;
 use Cwd qw{abs_path};
 use AnyEvent::HTTPD;
 use File::Basename;
@@ -17,14 +18,18 @@ use File::Copy;
 use Try::Tiny;
 use DBI;
 
-my $prefst = slurp 'prefs.json';
-my $prefs  = j($prefst);
-my $server = AnyEvent::HTTPD->new (
-               port => $prefs->{'port'} || 9000,
-             );
-my $router = AnyEvent::HTTPD::REST::Router->new;
+my $prefst     = slurp 'prefs.json';
+my $prefs      = j($prefst);
+my $server     = AnyEvent::HTTPD->new (
+                   port => $prefs->{'port'} || 9000,
+                 );
+my $router     = AnyEvent::HTTPD::REST::Router->new;
+my $handlebars = Text::Handlebars->new();
 my $dbh;
 my %preps;
+my %cache;
+
+$cache{'main'} = slurp 'templates/main.mustache';
 
 sub reconnect {
   return if (defined $dbh && $dbh->ping); 
@@ -300,7 +305,9 @@ $server->reg_cb(
     my ($httpd, $req) = @_;
     my $url = $req->url->as_string;
     $router->handle($url, $req);
-    $req->respond ({ content => ['text/html', 'Just another perl server.'] });
+
+    print "GET $url\n";
+    $req->respond ({ content => ['text/html', $handlebars->render_string($cache{'main'}, { title => 'test' })] });
   }
 );
 
