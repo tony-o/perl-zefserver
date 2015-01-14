@@ -2,6 +2,14 @@
 %=include 'partials/menu';
       <div class="container">
 
-        {{partial}}
+        <h2>zef - a perl6 package upper level manager</h2>
+        <p>
+          it's a package manager, use it for great success
+        </p>
+        <h2>installation</h2>
+        <p>
+          some installation crap
+        </p>
+        
 
       </div>

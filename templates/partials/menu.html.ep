@@ -1,3 +1,4 @@
+%my $stash = $self->stash->{container};
     <div class="container">
       <nav class="navbar navbar-default navbar-inverse" role="navigation">
         <div class="container-fluid">
@@ -12,10 +13,10 @@
           </div>
           <div id="navbar" class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
-              <li class="active">
+              <li class="<%= $stash->{'active'} eq '/' ? 'active' : '' %>">
                 <a href="/">Main</a>
               </li>
-              <li class="">
+              <li class="<%= $stash->{'active'} eq '/modules' ? 'active' : '' %>">
                 <a href="/modules">Modules</a>
               </li>
             </ul>
