@@ -1,0 +1,13 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+no if $] >= 5.018, warnings => 'experimental';
+use FindBin;
+BEGIN { unshift @INC, "$FindBin::Bin/../lib" }
+
+require Mojolicious::Commands;
+Mojolicious::Commands->start_app('Zef', {
+  listen => [qw{http://*:9000'}], 
+});

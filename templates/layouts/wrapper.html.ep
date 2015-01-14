@@ -1,0 +1,36 @@
+% my $stash = $self->stash->{container};
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=0"/>
+    <meta name="description" content=""/>
+    <meta name="author" content=""/>
+
+    <title><%= $stash->{'title'} || 'It is fresh.' %></title>
+
+    <link href="/css/bootstrap.min.css" rel="stylesheet"/>
+    <link href="/css/simplex.css" rel="stylesheet"/>
+    <link href="/css/smoke.css" rel="stylesheet"/>
+    <link rel="icon" href="/favicon.ico"/>
+  </head>
+  <body>
+
+%= content
+
+
+    <div class="container">
+      <footer>
+        <i class="glyphicon glyphicon-copyright-mark"></i><strong> 2014, zef</strong>
+      </footer>
+    </div>
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="/js/bootstrap.min.js"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="/js/ie10-viewport-bug-workaround.js"></script>
+  </body>
+</html>

@@ -1,0 +1,7 @@
+%layout 'wrapper';
+%=include 'partials/menu';
+      <div class="container">
+
+        {{partial}}
+
+      </div>

@@ -2,7 +2,6 @@
 
 use lib 'lib';
 use v5;
-use AnyEvent::HTTPD::REST::Router;
 use Digest::SHA qw{sha256_hex};
 use File::Path qw{make_path};
 use File::Temp qw{tempdir};
@@ -14,6 +13,7 @@ use AnyEvent::HTTPD;
 use File::Basename;
 use MIME::Base64;
 use Data::Dumper;
+use Mojolicious;
 use File::Copy;
 use Try::Tiny;
 use DBI;
@@ -28,8 +28,6 @@ my $handlebars = Text::Handlebars->new();
 my $dbh;
 my %preps;
 my %cache;
-
-$cache{'main'} = slurp 'templates/main.mustache';
 
 sub reconnect {
   return if (defined $dbh && $dbh->ping); 
