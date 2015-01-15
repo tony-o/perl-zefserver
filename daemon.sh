@@ -2,7 +2,12 @@
 BASEDIR=`dirname $0`
 
 if [ -z "$1" ]; then
-  echo "Usage: $0 [start|reload|stop|status|restart]";
+  echo "Usage: $0 [start|reload|stop|status|restart|foreground]";
+  exit 0;
+fi
+
+if [ "$1" = "foreground" ]; then
+  hypnotoad -f "$BASEDIR/script/app";
   exit 0;
 fi
 

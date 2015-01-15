@@ -1,4 +1,4 @@
-prefs.json
+zef.conf
 www/
 *.pem
 *.crt
