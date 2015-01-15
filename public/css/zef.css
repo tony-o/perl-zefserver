@@ -1,0 +1,29 @@
+body {
+  background: #111;
+  color: #eee;
+  font-family: "Roboto Condensed","Helvetica Neue",Helvetica,Arial,sans-serif;
+  font-size: 14px;
+}
+
+h1, h2, h3, h4, h5 { 
+  font-family: 'News Cycle'; 
+}
+
+.navbar-inverse {
+  background: #3A3A3A;
+}
+
+a,
+.navbar-inverse .navbar-nav > li > a:hover, .navbar-inverse .navbar-nav > li > a:focus,
+.navbar-inverse .navbar-brand:hover, .navbar-inverse .navbar-brand:focus
+{
+  color: #AD2;
+}
+
+a:hover, a:focus {
+  color: #FF0;
+}
+
+footer {
+  margin-top: 2em;
+}

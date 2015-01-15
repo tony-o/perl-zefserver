@@ -1,0 +1,8 @@
+%layout 'wrapper';
+%my $stash = $self->stash->{'container'};
+%=include 'partials/menu';
+      <div class="container">
+
+        %= dumper $stash; 
+
+      </div>
