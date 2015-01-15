@@ -1,4 +1,5 @@
 zef.conf
+modules/
 www/
 *.pem
 *.crt

@@ -11,6 +11,7 @@ sub setup {
 
   $api->route('/login')->to('Controller::API#login');
   $api->route('/register')->to('Controller::API#register');
+  $api->route('/push')->to('Controller::API#push');
 }
 
 { 420 => 'everyday' };

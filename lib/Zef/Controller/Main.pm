@@ -14,13 +14,13 @@ sub home {
 
 sub modules {
   my $self = shift;
-  my $stmt = $self->config->{'db'}->prepare('select * from ( select distinct name, owner from packages limit ?, 50) p1 left outer join ( select p3.* from ( select name,owner, version,submitted from packages order by id desc) p3 group by name, owner) p2 on p1.owner = p2.owner and p1.name = p2.name');
+  my $stmt = $self->config->{'db'}->prepare('select * from ( select distinct name, owner from packages limit ?, 10) p1 left outer join ( select p3.* from ( select name,owner, version,submitted from packages order by id desc) p3 group by name, owner) p2 on p1.owner = p2.owner and p1.name = p2.name');
 
   my @data;
 
   $stmt->execute;
-  while ($stmt->fetchrow_hashref) {
-    push @data, \$_;
+  while (my $hash = $stmt->fetchrow_arrayref) {
+    push @data, $hash;
   }
   
   $self->stash(
