@@ -2,7 +2,79 @@
 %my $stash = $self->stash->{'container'};
 %=include 'partials/menu';
       <div class="container">
+        <div class="row row-offcanvas row-offcanvas-right">
+          <div class="col-xs-12 col-sm-8">
+            <p class="pull-right visible-xs">
+              <button type="button" class="btn btn-xs" data-toggle="offcanvas">Toggle Nav</button>
+            </p>
+            <div class="row">
+              <div class="col-sm-4">
+                <h2>Activity Feed</h2>
+              </div>
+              <div class="col-sm-8">
+                <div class="form-group" style="padding-top:1.3em;">
+                  <div class="input-group">
+                    <label class="sr-only" for="search">Search</label>
+                    <div class="input-group-addon">
+                      <i class="glyphicon glyphicon-search"></i>
+                    </div>
+                    <input type="text" class="form-control" id="search" placeholder="Search"/>
+                  </div>  
+                </div>
+              </div>
+            </div>
+            <div class="modules">
+% for my $row (@{$stash->{'data'}}) {
+              <div class="row">
+                <div class="col-sm-2" style="text-align:center">
+                  <img src="<%= $row->{'icon'} // '/img/zefcon' . [1..4]->[int(rand 4)] . '.png' %>" class="<%if (defined $row->{'icon'}) {%>img-circle<%}%>"/>
+                </div>
+                <div class="col-sm-10">
+                  <h3>
+                    <a href="/module/<%= $row->{'owner'} . '/' . $row->{'name'} %>">
+                      <%= $row->{'name'} %>
+                    </a>
+                  </h3>
+                  <h4>
+                    <%= $row->{'owner'} %>
+                  </h4>
+                  <h5>
+                    <%= $row->{'submitted'} %>
+                  </h5>
+                  <button type="button" class="btn btn-link">
+                    <strong><%= $row->{'thumbups'} // '+0' %></strong>
+                    <i class="glyphicon glyphicon-thumbs-up"></i>
+                  </button>
+                  <button type="button" class="btn btn-link">
+                    <strong><%= $row->{'comments'} // '0' %></strong>
+                    <i class="glyphicon glyphicon-comment"></i>
+                  </button>
+                  <div class="well">
+                    <!-- recent comments go here !-->
+                    <div class="form-group">
+                      <div class="input-group">
+                        <label class="sr-only" for="newcomment">Comment</label>
+                        <div class="input-group-addon">
+                          <a href="#" class="submitcomment">
+                            <i class="glyphicon glyphicon-comment"></i>
+                          </a>
+                        </div>
+                        <input type="text" class="form-control" id="newcomment" placeholder="Quick Comment">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+% }
+            </div>
+          </div> 
+          <!-- off canvas !-->
+          <div class="col-xs-6 col-sm-4 sidebar-offcanvas" id="sidebar" role="navigation">
+            <h3>
+              <strong>some stats</strong>
+            </h3>
+          </div>
+        </div>
 
-        %= dumper $stash; 
 
       </div>

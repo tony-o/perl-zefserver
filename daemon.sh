@@ -9,6 +9,7 @@ fi
 if [ "$1" = "foreground" ]; then
   if [ -f "$BASEDIR/script/hypnotoad.pid" ]; then
     hypnotoad -s "$BASEDIR/script/app";
+    sleep 1;
   fi
   hypnotoad -f "$BASEDIR/script/app";
   exit 0;

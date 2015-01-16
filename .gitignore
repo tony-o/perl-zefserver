@@ -1,4 +1,5 @@
 zef.conf
+script/hypnotoad.pid
 modules/
 www/
 *.pem

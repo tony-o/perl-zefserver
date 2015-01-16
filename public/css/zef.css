@@ -16,6 +16,7 @@ h1, h2, h3, h4, h5 {
 }
 
 a,
+.btn-link,
 .navbar-inverse .navbar-nav > li > a:hover, .navbar-inverse .navbar-nav > li > a:focus,
 .navbar-inverse .navbar-brand:hover, .navbar-inverse .navbar-brand:focus
 {
@@ -27,7 +28,11 @@ a,
   border-bottom: 2px solid #AD2;
 }
 
-a:hover, a:focus {
+a:hover, 
+a:focus,
+.btn-link:hover,
+.btn-link:focus
+{
   color: #FF0;
 }
 

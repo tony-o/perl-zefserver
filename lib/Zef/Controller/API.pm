@@ -37,7 +37,7 @@ sub register {
     });
     1;
   };
-  my $stmt = $self->config->{'db'}->prepare('select count(username) from users where username = ?');
+  my $stmt = $self->app->db->prepare('select count(username) from users where username = ?');
   $stmt->execute($data->{'username'});
   my $rowc = $stmt->fetchrow_array();
   if ($rowc != 0) {
@@ -47,7 +47,7 @@ sub register {
     });
     return 1;
   }
-  $stmt = $self->config->{'db'}->prepare('insert into users (username, password, uq) values (?,?,?)');
+  $stmt = $self->app->db->prepare('insert into users (username, password, uq) values (?,?,?)');
   my $key = sha256_hex(time . $self->config->{'session_key'});
   my $pas = sha256_hex($data->{'password'} . $self->config->{'salt'});
   $stmt->execute($data->{'username'}, $pas, $key);
@@ -82,20 +82,20 @@ sub login {
     1;
   };
 
-  my $stmt = $self->config->{'db'}->prepare('select count(*) from users where username = ? and password =?');
   my $pass = sha256_hex($data->{'password'} . $self->config->{'salt'}); 
+  my $stmt = $self->app->db->prepare('select count(*) from users where username = ? and password = ?');
   $stmt->execute($data->{'username'}, $pass);
   my ($cnt) = $stmt->fetchrow_array();
   if ($cnt != 1) {
     $self->render(json => {
       failure => 1,
-      reason  => 'Couldn\'t find user/pass combo',
+      reason  => 'Couldn\'t find user/pass combo' . $DBI::errstr,
     });
     return 1;
   }
 
   my $key = sha256_hex(time . $self->config->{'session_key'});
-  $stmt = $self->config->{'db'}->prepare('update users set uq = ? where username = ? and password = ?');
+  $stmt = $self->app->db->prepare('update users set uq = ? where username = ? and password = ?');
   $stmt->execute($key, $data->{'username'}, $pass);
 
   $self->render(json => {
@@ -125,7 +125,7 @@ sub push {
     });
     1;
   };
-  my $stmt = $self->config->{'db'}->prepare('select id,username from users where uq = ?');
+  my $stmt = $self->app->db->prepare('select id,username from users where uq = ?');
   $stmt->execute($data->{'key'});
   my ($id,$user) = $stmt->fetchrow_array();
 
@@ -141,7 +141,7 @@ sub push {
     });
     return 1;
   }
-  $stmt = $self->config->{'db'}->prepare('select id from packages where name = ? and owner = ? and version = ?');
+  $stmt = $self->app->db->prepare('select id from packages where name = ? and owner = ? and version = ?');
   $stmt->execute($data->{'meta'}->{'name'}, "ZEF:$user", $data->{'meta'}->{'version'});
   my ($pkgid) = $stmt->fetchrow_array();
   if (defined $pkgid && $pkgid ne '') {
@@ -160,19 +160,20 @@ sub push {
     } else {
       make_path($d . dirname($f));
       open my $fh, '>', $d . $f;
-      print $fh, decode_base64($file);
+      print $fh decode_base64($file);
       close $fh;
     }
     $i++;
   }
 
-  make_path($self->config->{'module_dir'}) or die 'Set module_dir in zef.conf';
+  die 'Set module_dir in zef.conf' unless defined $self->config->{'module_dir'};
+  make_path($self->config->{'module_dir'}); 
 
   my $depends = defined $data->{'meta'}->{'dependencies'} 
                   ? j($data->{'meta'}->{'dependencies'}) 
                   : '{}';
-  my $stmt1 = $self->config->{'db'}->prepare('insert into packages (name,owner,dependencies,version,repo) values (?, ?, ?, ?, ?)');
-  my $stmt2 = $self->config->{'db'}->prepare('select id from packages where name = ? and owner = ? and version = ?');
+  my $stmt1 = $self->app->db->prepare('insert into packages (name,owner,dependencies,version,repo) values (?, ?, ?, ?, ?)');
+  my $stmt2 = $self->app->db->prepare('select id from packages where name = ? and owner = ? and version = ?');
 
   $stmt1->execute(
     $data->{'meta'}->{'name'},
@@ -197,6 +198,41 @@ sub push {
     success => 1,
     version => $version,
   });
+  return 1;
+}
+
+sub search {
+  my ($self) = @_;
+  my ($data);
+  return 1 if try {
+    try {
+      $data = p($self);
+    };
+    die "Provide some JSON data\n" if !defined($data) || $data eq '';
+    die "Invalid request, need {query:<>}\n"
+      unless defined $data->{'query'};
+    0;
+  } catch {
+    chomp $_;
+    $self->render(json => {
+      failure => 1,
+      reason  => $_
+    });
+    1;
+  };
+  my $stmt = $self->app->db->prepare('select p2.* from (select MAX(submitted), name, owner from packages group by name, owner) p1 left join (select * from packages) p2 on p2.submitted = p1.max and p2.name = p1.name WHERE upper(p2.name) like upper(?) or upper(p2.owner) like upper(?);');
+  $stmt->execute('%' . $data->{'query'} . '%', '%' . $data->{'query'} . '%');
+  my @return;
+  while (my $row = $stmt->fetchrow_hashref) {
+    push @return, {
+      name      => $row->{'name'},
+      owner     => $row->{'owner'},
+      version   => $row->{'version'},
+      submitted => $row->{'submitted'},
+    };
+  }
+
+  $self->render(json => [@return]);
   return 1;
 }
 
