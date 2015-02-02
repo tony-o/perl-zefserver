@@ -1,0 +1,109 @@
+%layout 'wrapper';
+%my $stash = $self->stash->{'container'};
+%=include 'partials/menu';
+      <div class="container">
+%if (! defined $stash->{'data'}) {
+        <h1>Error: module '<%=$stash->{'module'}%>' by <%=$stash->{'author'}%> not found</h1>
+%} else {
+        <div class="row row-offcanvas row-offcanvas-right">
+          <div class="col-xs-12 col-sm-8">
+            <p class="pull-right visible-xs">
+              <button type="button" class="btn btn-xs" data-toggle="offcanvas">Toggle Nav</button>
+            </p>
+            <ul class="pagination pagination-centered">
+              <li class="active">
+                <a href="#documentation">Documentation</a>
+              </li>
+              <li class="">
+                <a href="#buildstats">Build Status</a>
+              </li>
+              <li class="">
+                <a href="#logs">Submitted Logs</a>
+              </li>
+            </ul>
+            <div id="documentation">
+              %== $stash->{'data'}->{'readme'}
+            </div>
+            <div id="buildstats" class="hidden">
+              <h3>Build stats</h3>
+            </div>
+            <div id="logs" class="hidden">
+              <h3>Logs</h3>
+            </div>
+          </div> 
+          <!-- off canvas !-->
+          <div class="col-xs-6 col-sm-4 sidebar-offcanvas" id="sidebar" role="navigation">
+            <h3>
+              %== $stash->{'module'}
+            </h3>
+            <h5>
+              zef install <%= $stash->{'module'} %>
+            </h5>
+            <div class="row">
+              <div class="col-xs-4">
+                <strong>Package</strong>
+              </div>
+              <div class="col-xs-8">
+                %= $stash->{'module'}
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-xs-4">
+                <strong>Version</strong>
+              </div>
+              <div class="col-xs-8">
+                %= $stash->{'data'}->{'version'}
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-xs-4">
+                <strong>Activity</strong>
+              </div>
+              <div class="col-xs-8">
+                %= $stash->{'data'}->{'submitted'}
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-xs-4">
+                <strong>Build Status</strong>
+              </div>
+              <div class="col-xs-8">
+                jacked
+              </div>
+            </div>
+            <!--
+            <div class="row">
+              <div class="col-xs-4">
+                <strong>Build Logs</strong>
+              </div>
+              <div class="col-xs-8">
+                <a href="/modules/<%== $stash->{'author'} . '/' . $stash->{'module'} . '/' %>">
+                  Logs (<%== $stash->{'logcount'} // 0 %>)
+                </a>
+              </div>
+            </div>
+            !-->
+            <div class="row">
+              <div class="col-xs-4">
+                <strong>Repository</strong>
+              </div>
+              <div class="col-xs-8">
+                <a href="<%== $stash->{'data'}->{'repository'} %>" target="_blank">
+                  %= $stash->{'data'}->{'repo'}
+                </a>
+              </div>
+            </div>
+            <h4>Stats</h4>
+            <div class="row">
+              <div class="col-xs-4">
+                <strong>Downloads</strong>
+              </div>
+              <div class="col-xs-8">
+                3,865
+              </div>
+            </div>
+          </div>
+        </div>
+%}
+      </div>
+

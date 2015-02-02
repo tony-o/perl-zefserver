@@ -1,0 +1,80 @@
+[Mon Jan 19 10:33:15 2015] [info] Listening at "http://*:9000".
+[Mon Jan 19 10:33:15 2015] [info] Manager 3256 started.
+Server available at http://127.0.0.1:9000.
+[Mon Jan 19 10:33:15 2015] [info] Creating process id file "/home/tonyo/projects/perl-zefserver/script/hypnotoad.pid".
+$VAR1 = bless( {
+                 '_request' => bless( {
+                                        '_uri_canonical' => bless( do{\(my $o = 'https://api.github.com/markdown/raw')}, 'URI::https' ),
+                                        '_uri' => $VAR1->{'_request'}{'_uri_canonical'},
+                                        '_headers' => bless( {
+                                                               'user-agent' => 'libwww-perl/6.08',
+                                                               '::std_case' => {
+                                                                                 'if-ssl-cert-subject' => 'If-SSL-Cert-Subject'
+                                                                               },
+                                                               'content-type' => 'text/plain'
+                                                             }, 'HTTP::Headers' ),
+                                        '_content' => '#Quicky ORM
+',
+                                        '_method' => 'POST'
+                                      }, 'HTTP::Request' ),
+                 '_content' => '<h1>
+<a id="user-content-quicky-orm" class="anchor" href="#quicky-orm" aria-hidden="true"><span class="octicon octicon-link"></span></a>Quicky ORM</h1>
+',
+                 '_msg' => 'OK',
+                 '_headers' => bless( {
+                                        'client-ssl-cert-subject' => '/C=US/ST=California/L=San Francisco/O=GitHub, Inc./CN=*.github.com',
+                                        'x-content-type-options' => 'nosniff',
+                                        'x-ratelimit-reset' => '1421695953',
+                                        '::std_case' => {
+                                                          'client-date' => 'Client-Date',
+                                                          'x-served-by' => 'X-Served-By',
+                                                          'content-security-policy' => 'Content-Security-Policy',
+                                                          'status' => 'Status',
+                                                          'strict-transport-security' => 'Strict-Transport-Security',
+                                                          'client-ssl-cert-subject' => 'Client-SSL-Cert-Subject',
+                                                          'x-content-type-options' => 'X-Content-Type-Options',
+                                                          'x-ratelimit-reset' => 'X-RateLimit-Reset',
+                                                          'access-control-expose-headers' => 'Access-Control-Expose-Headers',
+                                                          'x-github-request-id' => 'X-GitHub-Request-Id',
+                                                          'x-ratelimit-limit' => 'X-RateLimit-Limit',
+                                                          'x-ratelimit-remaining' => 'X-RateLimit-Remaining',
+                                                          'client-ssl-socket-class' => 'Client-SSL-Socket-Class',
+                                                          'x-frame-options' => 'X-Frame-Options',
+                                                          'x-xss-protection' => 'X-XSS-Protection',
+                                                          'client-ssl-cert-issuer' => 'Client-SSL-Cert-Issuer',
+                                                          'access-control-allow-origin' => 'Access-Control-Allow-Origin',
+                                                          'client-response-num' => 'Client-Response-Num',
+                                                          'access-control-allow-credentials' => 'Access-Control-Allow-Credentials',
+                                                          'client-ssl-cipher' => 'Client-SSL-Cipher',
+                                                          'client-peer' => 'Client-Peer'
+                                                        },
+                                        'client-date' => 'Mon, 19 Jan 2015 18:33:18 GMT',
+                                        'x-served-by' => '07ff1c8a09e44b62e277fae50a1b1dc4',
+                                        'date' => 'Mon, 19 Jan 2015 18:33:18 GMT',
+                                        'content-security-policy' => 'default-src \'none\'',
+                                        'status' => '200 OK',
+                                        'strict-transport-security' => 'max-age=31536000; includeSubdomains; preload',
+                                        'connection' => 'close',
+                                        'x-frame-options' => 'deny',
+                                        'client-ssl-cert-issuer' => '/C=US/O=DigiCert Inc/OU=www.digicert.com/CN=DigiCert SHA2 High Assurance Server CA',
+                                        'x-xss-protection' => '1; mode=block',
+                                        'server' => 'GitHub.com',
+                                        'content-length' => '152',
+                                        'access-control-allow-origin' => '*',
+                                        'client-response-num' => 1,
+                                        'client-ssl-cipher' => 'ECDHE-RSA-AES128-SHA256',
+                                        'access-control-allow-credentials' => 'true',
+                                        'client-peer' => '192.30.252.136:443',
+                                        'vary' => 'Accept-Encoding',
+                                        'content-type' => 'text/html;charset=utf-8',
+                                        'x-github-request-id' => '36C14447:1670:758EC7:54BD4DEE',
+                                        'access-control-expose-headers' => 'ETag, Link, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval',
+                                        'x-ratelimit-remaining' => '57',
+                                        'x-ratelimit-limit' => '60',
+                                        'client-ssl-socket-class' => 'IO::Socket::SSL'
+                                      }, 'HTTP::Headers' ),
+                 '_rc' => 200,
+                 '_protocol' => 'HTTP/1.1'
+               }, 'HTTP::Response' );
+Use of uninitialized value in string eq at template partials/menu.html.ep line 16.
+Use of uninitialized value in string eq at template partials/menu.html.ep line 19.

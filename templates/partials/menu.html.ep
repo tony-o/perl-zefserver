@@ -13,17 +13,26 @@
           </div>
           <div id="navbar" class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
-              <li class="<%= $stash->{'active'} eq '/' ? 'active' : '' %>">
+              <li class="<%= ($stash->{'active'} // '') eq '/' ? 'active' : '' %>">
                 <a href="/">Main</a>
               </li>
-              <li class="<%= $stash->{'active'} eq '/modules' ? 'active' : '' %>">
+              <li class="<%= ($stash->{'active'} // '') eq '/modules' ? 'active' : '' %>">
                 <a href="/modules">Modules</a>
               </li>
             </ul>
             <ul class="nav navbar-nav navbar-right">
-              <li class="">
-                <a href="/modules">My Profile</a>
+%if (defined $stash->{'user'}) {
+              <li class="<%= ($stash->{'active'} // '') eq '/profile' ? 'active' : '' %>">
+                <a href="/profile">My Profile</a>
               </li>
+%} else {
+              <li class="<%= ($stash->{'active'} // '') eq '/login' ? 'active' : '' %>">
+                <a href="/login">Login</a>
+              </li>
+              <li class="<%= ($stash->{'active'} // '') eq '/register' ? 'active' : '' %>">
+                <a href="/register">Register</a>
+              </li>
+%}
             </ul>
           </div>
         </div>

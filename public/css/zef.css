@@ -9,6 +9,11 @@ h1, h2, h3, h4, h5 {
   font-family: 'News Cycle'; 
 }
 
+code,
+pre code {
+  font-size: 14px;
+}
+
 .navbar-inverse {
   background: #3A3A3A;
   font-weight: bold;
@@ -38,4 +43,98 @@ a:focus,
 
 footer {
   margin-top: 2em;
+  color: #666;
+}
+
+.well {
+  background: #333;
+  border-color: #444;
+}
+
+.input-group-addon,
+.input-group-addon, 
+.input-group-btn, 
+.input-group .form-control,
+.form-control
+{
+  background: #222;
+  border-color: #444;
+  color: #EEE;
+}
+
+.pagination > li > a, 
+.pagination > li > span
+{
+  background: inherit;
+  border: 0;
+}
+
+.pagination > li:first-child > a, 
+.pagination > li:first-child > span,
+.pagination > li:last-child > a, 
+.pagination > li:last-child > span
+{
+  border-radius: 0;
+  background: inherit;
+}
+
+.pagination > .active > a, 
+.pagination > .active > span, 
+.pagination > .active > a:hover, 
+.pagination > .active > span:hover, 
+.pagination > .active > a:focus, 
+.pagination > .active > span:focus
+{
+  background: inherit;
+  border-bottom: 2px solid #AD2;
+}
+
+.pagination > li > a, 
+.pagination > li > span, 
+.pagination > li > a, 
+.pagination > li > span
+{
+  color: #FFF;
+}
+
+.pagination > li > a:hover, 
+.pagination > li > span:hover, 
+.pagination > li > a:focus, 
+.pagination > li > span:focus
+{
+  background: inherit;
+  border-bottom: 2px solid #FF0;
+  color: #EEE;
+}
+
+pre
+{
+  padding: 2px;
+}
+
+.panel-info > .panel-heading {
+  color: #FFF;
+  background-color: #666;
+  border: 0;
+  border-radius: 0;
+}
+
+.panel-info {
+  border-radius: 0;
+  border-color: #888;
+}
+
+.panel {
+  background: #333;
+}
+
+.btn-success, .btn-success, .btn-success.focus, .btn-success:active, .btn-success.active, .open > .dropdown-toggle.btn-success {
+  background-color: #AD2;
+  color: #000;
+  border-radius: 0;
+}
+
+.btn-success:hover, .btn-success:focus, .btn-success.focus, .btn-success:active, .btn-success.active, .open > .dropdown-toggle.btn-success {
+  color: #000;
+  background-color: #FF0;
 }

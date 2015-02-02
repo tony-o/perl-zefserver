@@ -4,39 +4,45 @@ use JSON::Tiny qw<decode_json>;
 use Digest::SHA qw{sha256_hex};
 use File::Path qw{make_path};
 use File::Temp qw{tempdir};
+use File::Slurp qw{slurp};
 use File::Basename;
 use Data::Dumper;
 use MIME::Base64;
 use File::Copy;
+use File::Find;
 use Try::Tiny;
 
 sub p {
-  my ($s) = @_;
-  decode_json($s->req->{'content'}->{'asset'}->{'content'});
+  my ($s,$k,$e) = @_;
+  try {
+    my $d;
+    try { 
+      $d = decode_json($s->req->{'content'}->{'asset'}->{'content'});
+    };
+    die "Provide some JSON data\n" if ! defined($d) || $d eq '';
+    map {
+      die $e if ! defined $d->{$_};
+      1;
+    } @{$k};
+    $d;
+  } catch {
+    chomp $_;
+    warn  $_;
+    $s->render(json => {
+      failure => 1,
+      reason  => $_,
+    });
+    1;
+  };
 }
 
 sub register {
   my ($self) = @_;
-  my ($data);
-  return 1 if try {
-    try {
-      $data = p($self);
-      die $data;
-    };
-    die "Provide some JSON data\n" if !defined($data) || $data eq '';
-    die "Provide a username and password\n"
-      unless (defined $data->{'username'} && 
-              defined $data->{'password'});
-    0;
-  } catch {
-    chomp $_;
-    die $_;
-    $self->render(json => {
-      failure => 1,
-      reason  => $_
-    });
-    1;
-  };
+  my $data;
+
+  $data = p($self, ['username','password'], "Provide a username and password\n");
+  return 1 if ref($data) ne 'HASH';
+  warn Dumper $data; 
   my $stmt = $self->app->db->prepare('select count(username) from users where username = ?');
   $stmt->execute($data->{'username'});
   my $rowc = $stmt->fetchrow_array();
@@ -62,25 +68,8 @@ sub login {
   my ($self) = @_;
   
   my ($data);
-  return 1 if try {
-    try {
-      $data = p($self);
-      die $data;
-    };
-    die "Provide some JSON data\n" if !defined($data) || $data eq '';
-    die "Provide a username and password\n"
-      unless (defined $data->{'username'} && 
-              defined $data->{'password'});
-    0;
-  } catch {
-    chomp $_;
-    die $_;
-    $self->render(json => {
-      failure => 1,
-      reason  => $_
-    });
-    1;
-  };
+  $data = p(\$self, ['username','password'], "Provide a username and password\n");
+  return 1 if ref($data) ne 'HASH';
 
   my $pass = sha256_hex($data->{'password'} . $self->config->{'salt'}); 
   my $stmt = $self->app->db->prepare('select count(*) from users where username = ? and password = ?');
@@ -104,27 +93,52 @@ sub login {
   });
 }
 
+sub download {
+  my ($self) = @_;
+  my ($data);
+  $data = p($self, ['name'], "Invalid request, need {name:<>}\n");
+  return 1 if ref($data) ne 'HASH';
+
+  my $stmt = $self->app->db->prepare('select id from packages where name = ? ' . (defined $data->{'version'} ? ' AND version = ? ' : '') . (defined $data->{'author'} ? ' AND owner = ?' : ''));
+  my @params = $data->{'name'},;
+  push @params, $data->{'version'} if defined $data->{'version'};
+  push @params, $data->{'author'} if defined $data->{'author'};
+
+  $stmt->execute(@params);
+  my ($id) = $stmt->fetchrow_array();
+
+  if (!(defined $id && $id ne '')) {
+    $self->render(json => {
+      error => 'Couldn\'t find module or module/author/version combination',
+    });
+    return 1;
+  }
+
+  my @files;
+  find(
+    sub { 
+      return if -d;
+      my $f = $File::Find::name;
+      CORE::push @files, substr($File::Find::name, length $self->config->{'module_dir'} . $id); 
+    },
+    $self->config->{'module_dir'} . $id
+  );
+
+  $data = '';
+  for my $file (@files) {
+    my $buff = encode_base64(slurp($self->config->{'module_dir'} . $id . $file), '');
+    $data .= "$file\r\n$buff\r\n";
+  }
+  $self->render(text => $data);
+}
+
 sub push {
   my ($self) = @_;
   my ($data);
-  return 1 if try {
-    try {
-      $data = p($self);
-    };
-    die "Provide some JSON data\n" if !defined($data) || $data eq '';
-    die "Invalid request, need {key:<>,meta:{},data:{}}\n"
-      unless (defined $data->{'key'} && 
-              defined $data->{'meta'} &&
-              defined $data->{'data'});
-    0;
-  } catch {
-    chomp $_;
-    $self->render(json => {
-      failure => 1,
-      reason  => $_
-    });
-    1;
-  };
+
+  $data = p($self, ['key','meta','data'], "Invalid request, need {key:<>,meta:{},data{}}\n");
+  return 1 if ref($data) ne 'HASH';
+  
   my $stmt = $self->app->db->prepare('select id,username from users where uq = ?');
   $stmt->execute($data->{'key'});
   my ($id,$user) = $stmt->fetchrow_array();
@@ -204,27 +218,15 @@ sub push {
 sub search {
   my ($self) = @_;
   my ($data);
-  return 1 if try {
-    try {
-      $data = p($self);
-    };
-    die "Provide some JSON data\n" if !defined($data) || $data eq '';
-    die "Invalid request, need {query:<>}\n"
-      unless defined $data->{'query'};
-    0;
-  } catch {
-    chomp $_;
-    $self->render(json => {
-      failure => 1,
-      reason  => $_
-    });
-    1;
-  };
+  
+  $data = p($self, ['query'], "Invalid request, need {query:<>}\n");
+  return 1 if ref($data) ne 'HASH';
+
   my $stmt = $self->app->db->prepare('select p2.* from (select MAX(submitted), name, owner from packages group by name, owner) p1 left join (select * from packages) p2 on p2.submitted = p1.max and p2.name = p1.name WHERE upper(p2.name) like upper(?) or upper(p2.owner) like upper(?);');
   $stmt->execute('%' . $data->{'query'} . '%', '%' . $data->{'query'} . '%');
   my @return;
   while (my $row = $stmt->fetchrow_hashref) {
-    push @return, {
+    CORE::push @return, {
       name      => $row->{'name'},
       owner     => $row->{'owner'},
       version   => $row->{'version'},

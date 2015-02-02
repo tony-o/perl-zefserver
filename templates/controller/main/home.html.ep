@@ -2,7 +2,7 @@
 %=include 'partials/menu';
       <div class="container">
 
-        <h2>zef - a perl6 package upper level manager</h2>
+        <h2>zef - a perl6 luxury package manager</h2>
         <p>
           it's a package manager, use it for great success
         </p>

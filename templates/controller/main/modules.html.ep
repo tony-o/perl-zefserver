@@ -27,11 +27,11 @@
 % for my $row (@{$stash->{'data'}}) {
               <div class="row">
                 <div class="col-sm-2" style="text-align:center">
-                  <img src="<%= $row->{'icon'} // '/img/zefcon' . [1..4]->[int(rand 4)] . '.png' %>" class="<%if (defined $row->{'icon'}) {%>img-circle<%}%>"/>
+                  <img src="<%= $row->{'icon'} // '/img/zefcon' . ($row->{'uid'} % 4) . '.png' %>" class="<%if (defined $row->{'icon'}) {%>img-circle<%}%>"/>
                 </div>
                 <div class="col-sm-10">
                   <h3>
-                    <a href="/module/<%= $row->{'owner'} . '/' . $row->{'name'} %>">
+                    <a href="/modules/<%= $row->{'owner'} . '/' . $row->{'name'} %>">
                       <%= $row->{'name'} %>
                     </a>
                   </h3>
@@ -41,6 +41,9 @@
                   <h5>
                     <%= $row->{'submitted'} %>
                   </h5>
+                  %if (defined $row->{'readme'}) {
+                  %== $row->{'readme'}
+                  %}
                   <button type="button" class="btn btn-link">
                     <strong><%= $row->{'thumbups'} // '+0' %></strong>
                     <i class="glyphicon glyphicon-thumbs-up"></i>
