@@ -1,0 +1,11 @@
+%layout 'wrapper';
+%my $stash = $self->stash->{'container'};
+%my $user  = $self->session('user');
+%=include 'partials/menu';
+      <div class="container">
+
+        <h3><%= $user->{'username'} %></h3>
+        <h4>X modules authored by <%= $user->{'username'} %></h4>
+
+
+      </div>
