@@ -21,16 +21,16 @@
               </li>
             </ul>
             <ul class="nav navbar-nav navbar-right">
-%if (defined $stash->{'user'}) {
+%if (defined $self->session->{'user'}) {
               <li class="<%= ($stash->{'active'} // '') eq '/profile' ? 'active' : '' %>">
                 <a href="/profile">My Profile</a>
               </li>
-%} else {
-              <li class="<%= ($stash->{'active'} // '') eq '/login' ? 'active' : '' %>">
-                <a href="/login">Login</a>
+              <li class="<%= ($stash->{'active'} // '') eq '/profile' ? 'active' : '' %>">
+                <a href="/logout">Logout</a>
               </li>
-              <li class="<%= ($stash->{'active'} // '') eq '/register' ? 'active' : '' %>">
-                <a href="/register">Register</a>
+%} else {
+              <li class="<%= ($stash->{'active'} // '') eq '/getfresh' ? 'active' : '' %>">
+                <a href="/getfresh">Login/Register</a>
               </li>
 %}
             </ul>

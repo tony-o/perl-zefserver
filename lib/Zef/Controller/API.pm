@@ -28,11 +28,13 @@ sub p {
   } catch {
     chomp $_;
     warn  $_;
+    warn 'sending json';
     $s->render(json => {
       failure => 1,
       reason  => $_,
     });
-    1;
+    warn 'return undef';
+    undef;
   };
 }
 
@@ -68,7 +70,7 @@ sub login {
   my ($self) = @_;
   
   my ($data);
-  $data = p(\$self, ['username','password'], "Provide a username and password\n");
+  $data = p($self, ['username','password'], "Provide a username and password\n");
   return 1 if ref($data) ne 'HASH';
 
   my $pass = sha256_hex($data->{'password'} . $self->config->{'salt'}); 
@@ -78,7 +80,7 @@ sub login {
   if ($cnt != 1) {
     $self->render(json => {
       failure => 1,
-      reason  => 'Couldn\'t find user/pass combo' . $DBI::errstr,
+      reason  => 'Couldn\'t find user/pass combo', #. $DBI::errstr,
     });
     return 1;
   }

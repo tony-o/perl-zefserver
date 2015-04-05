@@ -68,23 +68,45 @@ sub module {
   );
 }
 
-sub login {
+sub profile {
+  my $self = shift;
+  if (!defined $self->session('user')) {
+    $self->session(wanted => '/profile');
+    $self->redirect_to('/getfresh');
+    return;
+  }
+}
+
+sub logout {
+  my $self = shift;
+  $self->session(user => undef);
+  $self->redirect_to('/');
+}
+
+sub getfresh {
   my $self = shift;
   my $error;
-  if (defined $self->stash->{'user'} && defined $self->stash->{'pass'}) {
-    my $user = $self->stash->{'user'};
-    my $pass = sha256_hex($self->stash->{'pass'} . $self->config->{'salt'});
-    my $stmt = $self->app->db->prepare('select * from users where user = ? and pass = ?');
+  warn defined $self->req->param('user') && defined $self->req->param('pass') ? 'checking user/pass' : 'no user/pass';
+  if (defined $self->req->param('user') && defined $self->req->param('pass')) {
+    my $user = $self->req->param('user');
+    my $pass = sha256_hex($self->req->param('pass') . $self->config->{'salt'});
+    my $stmt = $self->app->db->prepare('select * from users where username = ? and password = ?');
     $stmt->execute($user, $pass);
-    my $user = $stmt->fetchrow_hashref;
+    $user = $stmt->fetchrow_hashref;
     if (($user->{'id'} // 0) > 0) {
-      $self->redirect('/profile');
+      $self->session(user => $user);
+      if (defined $self->session('wanted') && $self->session('wanted') ne '/getfresh') {
+        $self->session(wanted => undef); 
+        $self->redirect_to($self->session('wanted'));
+        return;
+      }
+      $self->redirect_to('/profile');
       return;
     }
     $error = 'User/pass not found.';
   }
   $self->stash(container => {
-    active => '/login',
+    active => '/getfresh',
     reason => $error,
   });
 }

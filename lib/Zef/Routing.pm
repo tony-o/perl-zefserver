@@ -9,8 +9,9 @@ sub setup {
   $r->route('/')->to('Controller::Main#home');
   $r->route('/modules')->to('Controller::Main#modules');
   $r->route('/modules/#author/#module')->to('Controller::Main#module');
-  $r->route('/login')->to('Controller::Main#login');
-  $r->route('/register')->to('Controller::Main#register');
+  $r->route('/getfresh')->to('Controller::Main#getfresh');
+  $r->route('/profile')->to('Controller::Main#profile');
+  $r->route('/logout')->to('Controller::Main#logout');
 
   $api->route('/login')->to('Controller::API#login');
   $api->route('/register')->to('Controller::API#register');
