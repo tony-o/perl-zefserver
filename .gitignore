@@ -7,3 +7,5 @@ www/
 *.key
 *.csr
 log/*
+upstreams/ecosystem/modules/
+upstreams/ecosystem/provides.json

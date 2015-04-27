@@ -18,6 +18,7 @@ sub setup {
   $api->route('/push')->to('Controller::API#push');
   $api->route('/search')->to('Controller::API#search');
   $api->route('/download')->to('Controller::API#download');
+  $api->route('/fetch_upstream')->to('Controller::API#search_upstream');
 }
 
 { 420 => 'everyday' };

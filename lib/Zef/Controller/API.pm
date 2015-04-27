@@ -8,6 +8,7 @@ use File::Slurp qw{slurp};
 use File::Basename;
 use Data::Dumper;
 use MIME::Base64;
+use LWP::Simple;
 use File::Copy;
 use File::Find;
 use Try::Tiny;
@@ -17,7 +18,7 @@ sub p {
   try {
     my $d;
     try { 
-      $d = decode_json($s->req->{'content'}->{'asset'}->{'content'});
+      $d = decode_json($s->req->body);
     };
     die "Provide some JSON data\n" if ! defined($d) || $d eq '';
     map {
@@ -28,12 +29,10 @@ sub p {
   } catch {
     chomp $_;
     warn  $_;
-    warn 'sending json';
     $s->render(json => {
       failure => 1,
       reason  => $_,
     });
-    warn 'return undef';
     undef;
   };
 }
@@ -44,7 +43,6 @@ sub register {
 
   $data = p($self, ['username','password'], "Provide a username and password\n");
   return 1 if ref($data) ne 'HASH';
-  warn Dumper $data; 
   my $stmt = $self->app->db->prepare('select count(username) from users where username = ?');
   $stmt->execute($data->{'username'});
   my $rowc = $stmt->fetchrow_array();
@@ -101,7 +99,7 @@ sub download {
   $data = p($self, ['name'], "Invalid request, need {name:<>}\n");
   return 1 if ref($data) ne 'HASH';
 
-  my $stmt = $self->app->db->prepare('select id from packages where name = ? ' . (defined $data->{'version'} ? ' AND version = ? ' : '') . (defined $data->{'author'} ? ' AND owner = ?' : ''));
+  my $stmt = $self->app->db->prepare('select id from packages where name = ? ' . (defined $data->{'version'} ? ' AND version = ? ' : '') . (defined $data->{'author'} ? ' AND owner = ?' : '') . ' ORDER BY ID desc');
   my @params = $data->{'name'},;
   push @params, $data->{'version'} if defined $data->{'version'};
   push @params, $data->{'author'} if defined $data->{'author'};
@@ -109,28 +107,38 @@ sub download {
   $stmt->execute(@params);
   my ($id) = $stmt->fetchrow_array();
 
+  my $dir;
+
   if (!(defined $id && $id ne '')) {
-    $self->render(json => {
-      error => 'Couldn\'t find module or module/author/version combination',
-    });
-    return 1;
+    $dir = fetch_upstream($data->{name}, $self);
+    if (!defined( $dir ) || $dir eq '') {
+      $self->render(json => {
+        error => 'Couldn\'t find module or module/author/version combination',
+      });
+      return 1;
+    }
+  } else {
+    $dir = $self->config->{'module_dir'} . $id;
   }
 
+  
   my @files;
   find(
     sub { 
       return if -d;
       my $f = $File::Find::name;
-      CORE::push @files, substr($File::Find::name, length $self->config->{'module_dir'} . $id); 
+      CORE::push @files, substr($File::Find::name, length $dir); 
     },
-    $self->config->{'module_dir'} . $id
+    $dir
   );
 
   $data = '';
   for my $file (@files) {
-    my $buff = encode_base64(slurp($self->config->{'module_dir'} . $id . $file), '');
-    $data .= "$file\r\n$buff\r\n";
+    my $buff = encode_base64(slurp($dir . $file), '');
+    my $mode = (stat($dir . $file))[2];;
+    $data .= "$mode:$file\r\n$buff\r\n";
   }
+
   $self->render(text => $data);
 }
 
@@ -169,15 +177,18 @@ sub push {
   my $version = $data->{'meta'}->{'version'};
   my $i = 0;
   my $f = 0;
+  my $m = 0;
   my $d = tempdir();
   foreach my $file (split "\r\n", $data->{'data'}) {
     if ($i % 2 == 0) {
-      $f = $file;
+      ($m, $f) = split ':', $file, 2;
+      $m = oct($m);
     } else {
       make_path($d . dirname($f));
       open my $fh, '>', $d . $f;
       print $fh decode_base64($file);
       close $fh;
+      chmod $m, $d . $f;
     }
     $i++;
   }
@@ -236,8 +247,44 @@ sub search {
     };
   }
 
+  CORE::push @return, @{search_upstream($data->{query}, $self)};
+  
   $self->render(json => [@return]);
   return 1;
+}
+
+sub search_upstream {
+  my ($module, $self) = @_;
+  my $data = decode_json(slurp($self->config->{'upstream_dir'} . '/ecosystem/provides.json'));
+  
+  my $modolos = $data->{modules};
+  my @modules;
+  foreach my $provides (keys %{$modolos}) {
+    foreach my $p (@{$modolos->{$provides}->{provides}}) {
+      next unless index(uc $p, uc $module) > -1;
+      CORE::push @modules, { 
+        name      => $provides,
+        version   => 'git',
+        owner     => $modolos->{$provides}->{author} || 'unknown',
+        submitted => 'whenever',
+      };
+      last;
+    }
+  }
+
+  return [@modules];
+}
+
+sub fetch_upstream {
+  my ($module, $self) = @_;
+  my $data = decode_json(slurp($self->config->{'upstream_dir'} . 'ecosystem/provides.json'));
+  
+  my $modolos = $data->{modules};
+  my @modules;
+  foreach my $provides (keys %{$modolos}) {
+    return $self->config->{'upstream_dir'} . 'ecosystem/' . $modolos->{$provides}->{dir} if $provides eq $module;
+  }
+  return undef;
 }
 
 { everday => 'shufflin' };
