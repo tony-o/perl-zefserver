@@ -2,14 +2,17 @@
 
 use JSON::Tiny qw<encode_json decode_json>;
 use File::Slurp qw<slurp>;
+use File::Basename;
 use Modern::Perl;
 use Try::Tiny;
 use LWP::Simple;
+use Cwd qw<abs_path>;
 
 my $url = 'http://git.io/vf5FV';
+my $abs = dirname(abs_path($0));
 
 my @list = split("\n", get($url));
-my $prov = slurp('provides.json');
+my $prov = slurp($abs . '/provides.json');
 
 try {
   $prov = decode_json($prov);
@@ -44,7 +47,7 @@ foreach my $meta (@list) {
     1;
   } or next;
 }
-open my $fh, '>', 'provides.json';
+open my $fh, '>', $abs . '/provides.json';
 print $fh encode_json($prov);
 close $fh;
 

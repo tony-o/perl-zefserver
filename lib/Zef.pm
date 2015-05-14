@@ -4,14 +4,17 @@ use Mojo::Base qw<Mojolicious>;
 use Zef::Plugins;
 use Zef::Routing;
 use Zef::Auth;
-use DBI;
+use Mojo::Pg;
 
-has db => sub {
+sub db {
   my $self = shift;
-  return DBI->connect(
-    $self->config->{'db'}->{'connection'},
+  state $connection = DBI->connect(
+    ( "dbi:Pg:dbname="
+    . $self->config->{'db'}->{'db_name'}
+    . ';host='
+    . $self->config->{'db'}->{'host'} . ";"),
     $self->config->{'db'}->{'username'},
-    $self->config->{'db'}->{'password'},
+    $self->config->{'db'}->{'password'}
   );
 };
 

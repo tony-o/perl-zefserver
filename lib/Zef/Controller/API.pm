@@ -46,7 +46,8 @@ sub register {
   my $stmt = $self->app->db->prepare('select count(username) from users where username = ?');
   $stmt->execute($data->{'username'});
   my $rowc = $stmt->fetchrow_array();
-  if ($rowc != 0) {
+
+  if ($rowc) {
     $self->render(json => {
       failure => 1,
       reason  => 'Username already in use',
@@ -84,13 +85,22 @@ sub login {
   }
 
   my $key = sha256_hex(time . $self->config->{'session_key'});
-  $stmt = $self->app->db->prepare('update users set uq = ? where username = ? and password = ?');
-  $stmt->execute($key, $data->{'username'}, $pass);
 
-  $self->render(json => {
-    success => 1,
-    newkey  => $key, 
-  });
+  return try {
+    $stmt = $self->app->db->prepare('update users set uq = ? where username = ? and password = ?');
+    $stmt->execute($key, $data->{'username'}, $pass);
+
+    $self->render(json => {
+      success => 1,
+      newkey  => $key, 
+    });
+    1;
+  } catch {
+    $self->render(json => {
+      failure => 1,
+    });
+    1;
+  };
 }
 
 sub download {
@@ -134,6 +144,7 @@ sub download {
 
   $data = '';
   for my $file (@files) {
+    next if $file =~ m/\.git/;
     my $buff = encode_base64(slurp($dir . $file), '');
     my $mode = (stat($dir . $file))[2];;
     $data .= "$mode:$file\r\n$buff\r\n";
