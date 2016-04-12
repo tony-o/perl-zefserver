@@ -1,4 +1,3 @@
-
 CREATE TABLE IF NOT EXISTS users (
   ID bigserial primary key,
   USERNAME varchar(64) DEFAULT NULL,
