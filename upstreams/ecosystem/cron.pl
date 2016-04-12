@@ -12,9 +12,10 @@ my $url = 'http://git.io/vf5FV';
 my $abs = dirname(abs_path($0));
 
 my @list = split("\n", get($url));
-my $prov = slurp($abs . '/provides.json');
+my $prov;
 
 try {
+  $prov = slurp($abs . '/provides.json');
   $prov = decode_json($prov);
   die 'invalid' if !defined $prov->{modules};
 } catch { 

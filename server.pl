@@ -2,6 +2,7 @@
 
 use lib 'lib';
 use v5;
+use List::MoreUtils qw{natatime};
 use Digest::SHA qw{sha256_hex};
 use File::Path qw{make_path};
 use File::Temp qw{tempdir};
@@ -18,12 +19,12 @@ use File::Copy;
 use Try::Tiny;
 use DBI;
 
-my $prefst     = slurp 'prefs.json';
+my $prefst     = try { slurp 'prefs.json'; } catch { '{}'; };
 my $prefs      = j($prefst);
 my $server     = AnyEvent::HTTPD->new (
-                   port => $prefs->{'port'} || 9000,
+                   port => $prefs->{'port'} || 9001,
                  );
-my $router     = AnyEvent::HTTPD::REST::Router->new;
+my $router;
 my $handlebars = Text::Handlebars->new();
 my $dbh;
 my %preps;
@@ -35,12 +36,16 @@ sub reconnect {
   undef %preps;
 }
 
-$router->register({
+$router = [ 
   ('^' . $prefs->{'base'} . '/login$') => sub{ 
     reconnect;
     my $req = shift;
     my $data;
-    try { $data = j($req->content); } catch { undef $data; }; 
+    try { 
+      $data = j($req->content); 
+    } catch { 
+      undef $data; 
+    }; 
     if (not defined $data) {
       $req->respond([200, 'dumbass', {'Content-Type' => 'application/json'}, j({failure => 1, reason => 'Send some POST data'})]);
       return 1;
@@ -230,6 +235,8 @@ $router->register({
     reconnect;
     my $req = shift;
     my $data;
+    use Data::Dumper;
+    print Dumper $req;
     try { $data = j($req->content); } catch { undef $data; }; 
     if (not defined $data) {
       $req->respond([200, 'dumbass', {'Content-Type' => 'application/json'}, j({failure => 1, reason => 'Send some POST data'})]);
@@ -246,7 +253,7 @@ $router->register({
     $preps{'pagedsearch'}->execute($paged, '%' . uc($data->{'query'}) . '%', '%' . uc($data->{'query'}) . '%');
     my $returndata = [];
     while (my @row = $preps{'pagedsearch'}->fetchrow_array()) {
-      push($returndata, {name => @row[0], owner => @row[1], version => @row[2], submitted => @row[3]});
+      push @{$returndata}, {name => @row[0], owner => @row[1], version => @row[2], submitted => @row[3]};
     }
     $req->respond([200, 'dumbass', {'Content-Type' => 'application/json'}, j($returndata)]);
     return 1;
@@ -296,16 +303,22 @@ $router->register({
     $sth->finish;
     return 1;
   },
-});
+];
 
 $server->reg_cb(
   '' => sub{
     my ($httpd, $req) = @_;
     my $url = $req->url->as_string;
-    $router->handle($url, $req);
+    use Data::Dumper;
+    my $routes = natatime 2, @{$router};
+    while (my @route = $routes->()) {
+      if ($url ~~ /$route[0]/) {
+        $route[1]->($req);
+      }
+    }
 
-    print "GET $url\n";
-    $req->respond ({ content => ['text/html', $handlebars->render_string($cache{'main'}, { title => 'test' })] });
+    #print "GET $url\n";
+    #$req->respond ({ content => ['text/html', $handlebars->render_string($cache{'main'}, { title => 'test' })] });
   }
 );
 
