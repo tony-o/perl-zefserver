@@ -44,6 +44,7 @@ foreach my $meta (@list) {
       'not in meta'; 
     $prov->{modules}->{$data->{name}}->{repo} = $data->{'source-url'};
     $prov->{modules}->{$data->{name}}->{dir} = 'modules/' . cfname($data->{name});
+    $prov->{modules}->{$data->{name}}->{version} = $data->{version};
     say "Processed $data->{name}";
     1;
   } or next;
@@ -54,6 +55,8 @@ close $fh;
 
 for my $src (keys $prov->{modules}) {
   my $path = $src;
-  my $output = `git clone '$prov->{modules}->{$src}->{repo}' '$prov->{modules}->{$src}->{dir}'`;
+  my $output;
+  $output = `git clone '$prov->{modules}->{$src}->{repo}' '$prov->{modules}->{$src}->{dir}'`
+    unless -e $prov->{modules}->{$src}->{dir};
   `cd '$prov->{modules}->{$src}->{dir}'; git pull`;
 }

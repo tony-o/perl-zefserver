@@ -20,7 +20,7 @@
                 <a href="/modules">Modules</a>
               </li>
             </ul>
-            <ul class="nav navbar-nav navbar-right">
+            <!--ul class="nav navbar-nav navbar-right">
 %if (defined $self->session->{'user'}) {
               <li class="<%= ($stash->{'active'} // '') eq '/profile' ? 'active' : '' %>">
                 <a href="/profile">My Profile</a>
@@ -33,7 +33,7 @@
                 <a href="/getfresh">Login/Register</a>
               </li>
 %}
-            </ul>
+            </ul!-->
           </div>
         </div>
       </nav>

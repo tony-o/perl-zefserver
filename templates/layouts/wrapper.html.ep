@@ -15,8 +15,8 @@
     <link href="//fonts.googleapis.com/css?family=News+Cycle" rel="stylesheet" type="text/css"/>
     <link href="//fonts.googleapis.com/css?family=Anton" rel="stylesheet" type="text/css"/>
     <link href="//fonts.googleapis.com/css?family=Open+Sans:400,300,300italic,400italic,600,600italic,700,700italic,800,800italic" rel="stylesheet" type="text/css">
-    <link href="/css/zef.css" rel="stylesheet"/>
-    <link href="/css/smoke.css" rel="stylesheet"/>
+    <link href="/css/flat.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/smoke.css" rel="stylesheet" type="text/css"/>
     <link rel="icon" href="/favicon.ico"/>
     %for my $url (@{$stash->{'style'}}) {
     <link href="<%==$url%>" rel="stylesheet"/>

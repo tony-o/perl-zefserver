@@ -6,6 +6,11 @@
         <h1>Error: module '<%=$stash->{'module'}%>' by <%=$stash->{'author'}%> not found</h1>
 %} else {
         <div class="row row-offcanvas row-offcanvas-right">
+          %if (defined $stash->{warn}) {
+            <div class="alert alert-danger" role="alert">
+              %== $stash->{warn}
+            </div>
+          %}
           <div class="col-xs-12 col-sm-8">
             <p class="pull-right visible-xs">
               <button type="button" class="btn btn-xs" data-toggle="offcanvas">Toggle Nav</button>
@@ -15,14 +20,61 @@
                 <a href="#documentation">Documentation</a>
               </li>
               <li class="">
-                <a href="#buildstats">Build Status</a>
-              </li>
-              <li class="">
-                <a href="#logs">Submitted Logs</a>
+                <a href="#source">Repo Browser</a>
               </li>
             </ul>
             <div id="documentation">
-              %== $stash->{'data'}->{'readme'}
+              %== $stash->{'data'}->{'readme'} || 'Error getting readme'
+            </div>
+            <div id="source" class="hidden">
+              <h3>Source <%= $self->req->param('file') %></h3>
+              <div class="well">
+                <table class="table">
+                  <tr>
+                    <th>File</th>
+                    <th>Size</th>
+                  </tr>
+                  %my $cfile = $self->req->param('file');
+                  %$cfile    = '' unless defined $cfile;
+                  %unshift @{$stash->{files}}, { fname => '..', size => -1 } if $cfile ne '';
+                  %sub fix_rel { 
+                  %  my @x = File::Spec->splitdir(shift); 
+                  %  my $flg;
+                  %  for (my $y = 0; $y < @x; $y++) { 
+                  %    $flg = $x[$y] eq '..';
+                  %    splice @x, $y-1, 2 if $flg && $y > 0;
+                  %    splice @x, $y,   1 if $flg && $y == 0; 
+                  %    $y-- if $flg;
+                  %  } 
+                  %  join "/", @x; 
+                  %}
+                  %foreach my $f (@{$stash->{files}}) {
+                  <tr>
+                    <td>
+                      %use File::Spec;
+                      %my $rpp = fix_rel("$cfile/" . $f->{fname});
+                      <a href="<%= $self->req->url->to_abs->path %>?file=<%= $rpp %>#source">
+                        %= $f->{fname}
+                      </a>
+                    </td>
+                    <td>
+                      %my $fmt = 0;
+                      %my @fmts = qw<b kb mb gb>;
+                      %while ($f->{size} > 1024 && $fmt < $#fmts) {
+                      % $f->{size} /= 1024;
+                      % $fmt++;
+                      %}
+                      %= $f->{fname} =~ m/\/$/ || $f->{fname} eq '..' ? '-' : sprintf("%.2f", $f->{size}) . $fmts[$fmt]
+                    </td>
+                  </tr>
+                  %}
+                </table>
+              </div> 
+              %if (defined $stash->{fdata} && $stash->{fdata} ne '') {
+              <pre><%==
+                $stash->{fdata}
+              %></pre>
+              %}
             </div>
             <div id="buildstats" class="hidden">
               <h3>Build stats</h3>
@@ -88,7 +140,10 @@
                 <strong>Repository</strong>
               </div>
               <div class="col-xs-8">
-                <a href="<%== $stash->{'data'}->{'repository'} %>" target="_blank">
+                % my $mod = $stash->{'data'}->{'repo'};
+                % $mod =~ s/^git:/https:/;
+                % $mod =~ s/\.git$//;
+                <a href="<%== $mod %>" target="_blank">
                   %= $stash->{'data'}->{'repo'}
                 </a>
               </div>
