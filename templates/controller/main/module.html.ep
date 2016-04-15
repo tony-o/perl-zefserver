@@ -27,32 +27,18 @@
               %== $stash->{'data'}->{'readme'} || 'Error getting readme'
             </div>
             <div id="source" class="hidden">
-              <h3>Source <%= $self->req->param('file') %></h3>
+              <h3>Source <%= '/' . $stash->{fbase} %></h3>
               <div class="well">
                 <table class="table">
                   <tr>
                     <th>File</th>
                     <th>Size</th>
                   </tr>
-                  %my $cfile = $self->req->param('file');
-                  %$cfile    = '' unless defined $cfile;
-                  %unshift @{$stash->{files}}, { fname => '..', size => -1 } if $cfile ne '';
-                  %sub fix_rel { 
-                  %  my @x = File::Spec->splitdir(shift); 
-                  %  my $flg;
-                  %  for (my $y = 0; $y < @x; $y++) { 
-                  %    $flg = $x[$y] eq '..';
-                  %    splice @x, $y-1, 2 if $flg && $y > 0;
-                  %    splice @x, $y,   1 if $flg && $y == 0; 
-                  %    $y-- if $flg;
-                  %  } 
-                  %  join "/", @x; 
-                  %}
+                  %unshift @{$stash->{files}}, { fname => '..', size => -1 } if $stash->{fbase} ne '';
                   %foreach my $f (@{$stash->{files}}) {
                   <tr>
                     <td>
-                      %use File::Spec;
-                      %my $rpp = fix_rel("$cfile/" . $f->{fname});
+                      %my $rpp = ($stash->{fbase} ne '' ? $stash->{fbase} . '/' : '') . $f->{fname};
                       <a href="<%= $self->req->url->to_abs->path %>?file=<%= $rpp %>#source">
                         %= $f->{fname}
                       </a>
@@ -64,16 +50,17 @@
                       % $f->{size} /= 1024;
                       % $fmt++;
                       %}
-                      %= $f->{fname} =~ m/\/$/ || $f->{fname} eq '..' ? '-' : sprintf("%.2f", $f->{size}) . $fmts[$fmt]
+                      %= $f->{isdir} || $f->{fname} eq '..' ? '-' : sprintf("%.2f", $f->{size}) . $fmts[$fmt]
                     </td>
                   </tr>
                   %}
                 </table>
               </div> 
               %if (defined $stash->{fdata} && $stash->{fdata} ne '') {
-              <pre><%==
+              <h3><%= $stash->{rfile} %></h3>
+              <pre><code><%==
                 $stash->{fdata}
-              %></pre>
+              %></code></pre>
               %}
             </div>
             <div id="buildstats" class="hidden">
@@ -120,21 +107,11 @@
                 <strong>Build Status</strong>
               </div>
               <div class="col-xs-8">
-                jacked
+                %my @a = qw<stoked jacked ripped busted fresh>;
+                %my $show = int(rand(scalar(@a)));
+                %= $a[$show]
               </div>
             </div>
-            <!--
-            <div class="row">
-              <div class="col-xs-4">
-                <strong>Build Logs</strong>
-              </div>
-              <div class="col-xs-8">
-                <a href="/modules/<%== $stash->{'author'} . '/' . $stash->{'module'} . '/' %>">
-                  Logs (<%== $stash->{'logcount'} // 0 %>)
-                </a>
-              </div>
-            </div>
-            !-->
             <div class="row">
               <div class="col-xs-4">
                 <strong>Repository</strong>
@@ -154,7 +131,9 @@
                 <strong>Downloads</strong>
               </div>
               <div class="col-xs-8">
-                3,865
+                %my $num = 1 + int(rand(5000000 - 1));
+                %$num =~ s/(\d)(?=(\d{3})+(\D|$))/$1\,/g;
+                %= $num
               </div>
             </div>
           </div>

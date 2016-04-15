@@ -1,15 +1,22 @@
 package Zef::Controller::Main;
 use Mojo::Base qw<Mojolicious::Controller>;
+use Text::Levenshtein::Damerau::XS qw/xs_edistance/;
 use Text::Markdown qw<markdown>;
 use Digest::SHA qw{sha256_hex};
 use File::Slurp qw<slurp>;
 use HTTP::Request::Common;
+use List::Util qw<sum>;
 use Cwd qw<abs_path>;
+use Text::ParseWords;
 use Fcntl qw<:mode>;
 use LWP::UserAgent;
-use JSON::Tiny;
+use JSON::Tiny qw<decode_json>;
+use File::Spec;
 use Try::Tiny;
 use Pod::Html;
+
+our $LTIME;
+our $X;
 
 sub home {
   my $self = shift;
@@ -56,7 +63,6 @@ sub module {
   my $rfil;
   if (-f abs_path($cfdr . (defined $freq ? '/' . $freq : ''))) {
     $rfil = $freq;
-    $freq .= '/..';
   }
   if (not -e abs_path($cfdr . (defined $freq ? '/' . $freq : ''))) {
     $warn = 'Directory requested does not exist or inaccessible: ' . $freq;
@@ -88,29 +94,39 @@ sub module {
 
   try {
     if (defined $rfil) {
-      $fdata = read_file($self, $data->{name}, $cfdr . $rfil);
+      $fdata = read_file($self, $data->{name}, "$cfdr/$rfil");
     }
   } catch {
-
+    warn $_;
   };
 
+  if (defined $freq && -f "$cfdr/$freq") {
+    my $x = rindex($freq, '/');
+    if ($x > -1) {
+      $freq = substr $freq, 0, $x;
+    } else {
+      $freq = '';
+    }
+  }
 
   $self->stash(
     container => {
       author => $self->stash->{'author'},
       module => $self->stash->{'module'},
+      rfile  => fix_rel($rfil),
       data   => $data,
       files  => \@sorted,
       fdata  => $fdata,
       active => '/modules',
       warn   => $warn,
+      fbase  => fix_rel($freq),
       script => [
-        '//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/highlight.min.js',
+        '//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.3.0/highlight.min.js',
         '/js/markdown.js',
         '/js/modulepagination.js',
       ],
       style  => [
-        '//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css',
+        '//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.3.0/styles/github.min.css',
       ],
     },
   );
@@ -123,6 +139,61 @@ sub profile {
     $self->redirect_to('/getfresh');
     return;
   }
+}
+
+sub search {
+  our ($X, $LTIME);
+  my $self = shift;
+  my $search = $self->param('terms');
+  my @terms = grep {!/^\s*$/} quotewords('\s+', 0, $search);
+  my (@results, %scores, $max_reasons);
+
+  update_meta($self);
+
+  use Data::Dumper;
+  my %modules = %{$X->{modules}};
+  foreach my $mod (keys %modules) {
+    foreach my $index (0..@terms-1) {
+      $scores{$mod} = { module => $mod, reasons => [], scores => [], score => 0 }  unless ref($scores{$mod}) eq 'HASH';
+      my $tlen = length $terms[$index];
+      my $mm = $scores{$mod};
+      my $e = xs_edistance($mod, $terms[$index]); 
+      push @{$mm->{reasons}}, 'Module name';
+      push @{$mm->{scores}}, $e;
+      $e = xs_edistance($modules{$mod}->{author}, $terms[$index]);
+      push @{$mm->{reasons}}, 'Author';
+      push @{$mm->{scores}}, $e;
+      if (defined $modules{$mod}->{provides}) {
+        for my $provides (0..@{$modules{$mod}->{provides}}) { 
+          $e = xs_edistance($modules{$mod}->{provides}->[$provides], $terms[$index]);
+          push @{$mm->{reasons}}, 'Provides';
+          push @{$mm->{scores}}, $e;
+        }
+      }
+      $mm->{score} = sum(@{$mm->{scores}}) / scalar(@{$mm->{scores}});
+      $max_reasons = scalar(@{$mm->{reasons}}) if 
+        scalar($mm->{reasons}) > ($max_reasons || -1);
+    }
+  }
+
+
+  @results = sort {
+    return $scores{$a}->{score} <=> $scores{$b}->{score};
+  } keys %scores;
+  @results = splice @results, 0, 50;
+  my $stmt = $self->app->db->prepare('select * from packages where name = ? limit 1;');
+  map { 
+    $_ = $scores{$_}; 
+    $stmt->execute($_->{module});
+    $_->{data} = $stmt->fetchrow_hashref;
+  } @results;
+  
+  $self->stash(
+    container => {
+      results => \@results,
+      terms   => $search,
+    }
+  );
 }
 
 sub logout {
@@ -174,6 +245,9 @@ sub list_files {
   $m = cfname($m);
   if (index(abs_path($d), $self->config->{module_dir} . '/' . $m) != 0) {
     die 'Do not attempt this';
+  }
+  if (-f $d) {
+    $d = substr $d, 0, rindex($d, '/');
   }
   opendir DIR, $d;
   my @files;
@@ -236,6 +310,28 @@ sub updatereadme {
       $stmt->execute($data, $hash->{id});
     }
   }
+}
+
+sub fix_rel { 
+  my @x = File::Spec->splitdir(shift); 
+  my $flg;
+  for (my $y = 0; $y < @x; $y++) { 
+    $flg = $x[$y] eq '..';
+    splice @x, $y-1, 2 if $flg && $y > 0;
+    splice @x, $y,   1 if $flg && $y == 0; 
+    $y-- if $flg;
+  } 
+  use Data::Dumper;
+  return '' if scalar(@x) == 0;
+  join "/", @x; 
+}
+
+sub update_meta {
+  our ($LTIME, $X);
+  my ($self) = @_;
+  return if defined $LTIME && time - $LTIME < 60 * 5;
+  $X = decode_json slurp($self->config->{module_dir} . '/../provides.json'); 
+  $LTIME = time;
 }
 
 { smoke => 'everyday' };

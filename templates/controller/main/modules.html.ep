@@ -12,15 +12,17 @@
                 <h2>Activity Feed</h2>
               </div>
               <div class="col-sm-8">
+                <form action="/search" method="GET">
                 <div class="form-group" style="padding-top:1.3em;">
                   <div class="input-group">
                     <label class="sr-only" for="search">Search</label>
                     <div class="input-group-addon">
                       <i class="glyphicon glyphicon-search"></i>
                     </div>
-                    <input type="text" class="form-control" id="search" placeholder="Search"/>
+                    <input type="text" class="form-control" name="terms" id="terms" placeholder="Search"/>
                   </div>  
                 </div>
+                </form>
               </div>
             </div>
             <div class="modules">

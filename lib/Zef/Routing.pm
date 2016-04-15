@@ -12,6 +12,7 @@ sub setup {
   $r->route('/getfresh')->to('Controller::Main#getfresh');
   $r->route('/profile')->to('Controller::Main#profile');
   $r->route('/logout')->to('Controller::Main#logout');
+  $r->route('/search')->to('Controller::Main#search');
 
   $api->route('/login')->to('Controller::API#login');
   $api->route('/register')->to('Controller::API#register');

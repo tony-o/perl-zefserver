@@ -1,0 +1,51 @@
+%layout 'wrapper';
+%my $stash = $self->stash->{'container'};
+%=include 'partials/menu';
+      <div class="container">
+
+        <div class="row">
+          <div class="col-sm-4">
+            <h2>Search</h2>
+          </div>
+          <div class="col-sm-8">
+            <form action="/search" method="GET">
+            <div class="form-group" style="padding-top:1.3em;">
+              <div class="input-group">
+                <label class="sr-only" for="search">Search</label>
+                <div class="input-group-addon">
+                  <i class="glyphicon glyphicon-search"></i>
+                </div>
+                <input type="text" class="form-control" name="terms" id="terms" placeholder="Search" value="<%= $stash->{terms} %>"/>
+              </div>
+            </div>
+            </form>
+          </div>
+        </div>
+        <h3><%= $stash->{terms} %></h3>
+
+
+        %my $uid = 0;
+        %my $row;
+        %foreach my $result (@{$stash->{results}}) { 
+          %$row = $result->{data};
+          %next unless defined $row && ref($row) eq 'HASH';
+          <div class="row">
+            <div class="col-sm-2" style="text-align:center">
+              <img src="/img/zefcon<%= $uid++ % 5 %>.png" class="<%if (exists $row->{'icon'}) {%>img-circle<%}%>"/>
+            </div>
+            <div class="col-sm-10">
+              <h3>
+                <a href="/modules/<%= (exists $row->{owner} && defined $row->{owner} ? $row->{'owner'} : 'not in meta') . '/' . $row->{'name'} %>">
+                  <%= $row->{'name'} %>
+                </a>
+              </h3>
+              <h4>
+                <%= $row->{'owner'} %>
+              </h4>
+              <h5>
+                <%= $row->{'submitted'} %>
+              </h5>
+            </div>
+          </div>
+        %}
+      </div>
