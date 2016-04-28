@@ -154,32 +154,49 @@ sub search {
   my %modules = %{$X->{modules}};
   foreach my $mod (keys %modules) {
     foreach my $index (0..@terms-1) {
-      $scores{$mod} = { module => $mod, reasons => [], scores => [], score => 0 }  unless ref($scores{$mod}) eq 'HASH';
-      my $tlen = length $terms[$index];
+      $scores{$mod} = { module => $mod, reasons => [], scores => [], score => undef }  unless ref($scores{$mod}) eq 'HASH';
+      my $e = index(lc($mod), lc($terms[$index]));
       my $mm = $scores{$mod};
-      my $e = xs_edistance($mod, $terms[$index]); 
-      push @{$mm->{reasons}}, 'Module name';
-      push @{$mm->{scores}}, $e;
-      $e = xs_edistance($modules{$mod}->{author}, $terms[$index]);
-      push @{$mm->{reasons}}, 'Author';
-      push @{$mm->{scores}}, $e;
+      if ($e > -1) {
+        push @{$mm->{reasons}}, 'Module name';
+        push @{$mm->{scores}}, $e;
+      }
       if (defined $modules{$mod}->{provides}) {
         for my $provides (0..@{$modules{$mod}->{provides}}) { 
-          $e = xs_edistance($modules{$mod}->{provides}->[$provides], $terms[$index]);
-          push @{$mm->{reasons}}, 'Provides';
-          push @{$mm->{scores}}, $e;
+          next unless defined $modules{$mod}->{provides}->[$provides];
+          my $e = index(lc($modules{$mod}->{provides}->[$provides]), lc($terms[$index]));
+          if ($e > -1) {
+            push @{$mm->{reasons}}, 'Provides';
+            push @{$mm->{scores}}, $e;
+          }
         }
       }
-      $mm->{score} = sum(@{$mm->{scores}}) / scalar(@{$mm->{scores}});
-      $max_reasons = scalar(@{$mm->{reasons}}) if 
-        scalar($mm->{reasons}) > ($max_reasons || -1);
+#
+#      $e = xs_edistance($modules{$mod}->{author}, $terms[$index]);
+#      push @{$mm->{reasons}}, 'Author';
+#      push @{$mm->{scores}}, $e;
+#      if (defined $modules{$mod}->{provides}) {
+#        for my $provides (0..@{$modules{$mod}->{provides}}) { 
+#          $e = xs_edistance($modules{$mod}->{provides}->[$provides], $terms[$index]);
+#          push @{$mm->{reasons}}, 'Provides';
+#          push @{$mm->{scores}}, $e;
+#        }
+#      }
+#      $mm->{score} = sum(@{$mm->{scores}}) / scalar(@{$mm->{scores}});
+#      $max_reasons = scalar(@{$mm->{reasons}}) if 
+#        scalar($mm->{reasons}) > ($max_reasons || -1);
     }
   }
 
+  @results = grep { 0 < scalar(@{$scores{$_}->{scores}}) } keys %scores;
 
   @results = sort {
-    return $scores{$a}->{score} <=> $scores{$b}->{score};
-  } keys %scores;
+    my $as = $scores{$a}->{scores};
+    my $bs = $scores{$b}->{scores};
+    return length($a) <=> length($b) if $as->[0] == $bs->[0];
+    return $a <=> $b if $as->[0] == $bs->[0];
+    return $as->[0] <=> $bs->[0];
+  } @results;
   @results = splice @results, 0, 50;
   my $stmt = $self->app->db->prepare('select * from packages where name = ? limit 1;');
   map { 
