@@ -1,4 +1,5 @@
 package Zef::Plugins;
+use Mojolicious::Plugin::Human;
 
 sub setup {
   my (undef, $self) = @_;
@@ -8,6 +9,7 @@ sub setup {
     validate_user => \&Zef::Auth::validate_user,
   });
 
+  $self->plugin('Human');
   $self->plugin('RenderFile');
 
   $self->plugin('config' => {
