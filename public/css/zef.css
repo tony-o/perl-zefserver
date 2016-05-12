@@ -26,6 +26,7 @@ a,
 .navbar-inverse .navbar-brand:hover, .navbar-inverse .navbar-brand:focus
 {
   color: #AD2;
+  text-decoration: none;
 }
 
 .navbar-inverse .navbar-nav > .active > a, .navbar-inverse .navbar-nav > .active > a:hover, .navbar-inverse .navbar-nav > .active > a:focus {

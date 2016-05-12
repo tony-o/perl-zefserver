@@ -31,7 +31,18 @@ sub home {
 
 sub modules {
   my $self = shift;
-  my $stmt = $self->app->db->prepare('select p2.*, to_char(p2.submitted, \'DD Mon YYYY\') submitted from (select MAX(submitted), name, owner from packages group by name, owner) p1 left join (select packages.*, users.id uid from packages left join users on packages.owner = \'ZEF:\' || users.username) p2 on p2.submitted = p1.max and p2.name = p1.name order by p2.submitted desc limit 20;');
+  my $stmt = $self->app->db->prepare(<<ESQL
+    select 
+      *, 
+      to_char(packages.submitted, \'DD Mon YYYY\') submitted, 
+      to_char(packages.action, \'DD Mon YYYY\') as action 
+    from
+      packages
+    order by 
+      packages.action desc 
+    limit 30;
+ESQL
+);
 
   my @data;
 

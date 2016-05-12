@@ -18,6 +18,7 @@ my $dbh = DBI->connect("dbi:Pg:dbname=" . $cfg->{db}->{db_name}, $cfg->{db}->{us
 my $upd = $dbh->prepare("UPDATE packages SET version = ?, owner = ?, repo = ?, dependencies = ? WHERE name = ?") or die $dbh->errstr;
 my $ins = $dbh->prepare("INSERT INTO packages (name, version, owner, repo, dependencies) VALUES (?, ?, ?, ?, ?)") or die $dbh->errstr;
 my $sel = $dbh->prepare("SELECT COUNT(*) c FROM packages WHERE name = ?") or die $dbh->errstr;
+my $rwr = $dbh->prepare("SELECT * FROM packages WHERE name = ? LIMIT 1") or die $dbh->errstr;
 
 my $prov;
 
@@ -41,9 +42,16 @@ my $modules = $prov->{modules};
 foreach my $mod (keys $modules) {
   next unless -e "$abs/modules/" . cfname($mod);
   $sel->execute($mod) or die $sel->errstr;
-  if ($sel->fetchrow_hashref()->{c} == 0) {
+  my $hr = $sel->fetchrow_hashref();
+  if ($hr->{c} == 0) {
     $ins->execute($mod, $modules->{$mod}->{version}, $modules->{$mod}->{author}, $modules->{$mod}->{repo}, $modules->{$mod}->{dependencies});
   } else {
-    $upd->execute($modules->{$mod}->{version}, $modules->{$mod}->{author}, $modules->{$mod}->{repo}, $modules->{$mod}->{dependencies}, $mod);
+    $rwr->execute($mod);
+    $hr = $rwr->fetchrow_hashref();
+    $upd->execute($modules->{$mod}->{version}, $modules->{$mod}->{author}, $modules->{$mod}->{repo}, $modules->{$mod}->{dependencies}, $mod)
+      unless ($hr->{version}||'')      eq ($modules->{$mod}->{version}||'')
+          && ($hr->{owner}||'not in meta')       eq ($modules->{$mod}->{author}||'')
+          && ($hr->{repo}||'')         eq ($modules->{$mod}->{repo}||'')
+          && ($hr->{dependencies}||'') eq ($modules->{$mod}->{dependencies}||'');
   }
 }

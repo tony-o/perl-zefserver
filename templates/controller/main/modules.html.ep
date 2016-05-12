@@ -26,6 +26,7 @@
               <th>Name</th>
               <th>Author</th>
               <th>Submitted</th>
+              <th>Updated</th>
             </tr>
 % my $uid = 1;
 % for my $row (@{$stash->{'data'}}) {
@@ -51,6 +52,12 @@
                   <%= $row->{'submitted'} %>
                 </a>
               </td>
+              <td>
+                <a href="<%= $urli %>">
+                  <%= $row->{'action'} %>
+                </a>
+              </td>
+            </tr>
             </tr>
 % }
           </table>
