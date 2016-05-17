@@ -31,6 +31,9 @@ sub home {
 
 sub modules {
   my $self = shift;
+  my $page = $self->param('page') || 0;
+  my $size = 30;
+  $page = $page ~~ /^\d+$/ ? $page * $size : 0;
   my $stmt = $self->app->db->prepare(<<ESQL
     select 
       *, 
@@ -40,7 +43,15 @@ sub modules {
       packages
     order by 
       packages.action desc 
-    limit 30;
+    limit $size
+    offset $page;
+ESQL
+);
+  my $cont = $self->app->db->prepare(<<ESQL
+    select 
+      count(*) c
+    from
+      packages
 ESQL
 );
 
@@ -52,10 +63,15 @@ ESQL
     push @data, $hash;
   }
 
+  $cont->execute;
+  my $count = $cont->fetchrow_hashref;
+  $count = $count->{c};
+
   $self->stash(
     container => {
       active => '/modules',
       data   => [@data],
+      pages  => ($count / $size)
     },
   );
 }
@@ -144,12 +160,41 @@ sub module {
 }
 
 sub profile {
+  our ($X, $LTIME);
   my $self = shift;
-  if (!defined $self->session('user')) {
-    $self->session(wanted => '/profile');
-    $self->redirect_to('/getfresh');
-    return;
+  my $prof = $self->param('author');
+
+  update_meta($self);
+
+  my %modules  = %{$X->{modules}};
+  my @authored;
+  my $stmt = $self->app->db->prepare('select * from packages where name = ? limit 1;');
+  for my $mod (keys %modules) {
+    next unless exists 
+      $modules{$mod}->{author} 
+      && defined $modules{$mod}->{author} 
+      && $modules{$mod}->{author} eq $prof;
+    $stmt->execute($mod);
+    my $data = $stmt->fetchrow_hashref;
+    push @authored, {
+      data   => $data,
+      module => "$mod",
+      mdd    => $modules{$mod},
+    };
   }
+
+  @authored = sort {
+    my $as = $a->{data}->{action};
+    my $bs = $b->{data}->{action};
+    $bs cmp $as;
+  } @authored;
+
+  $self->stash(
+    container => {
+      author  => $prof,
+      modules => \@authored,
+    }
+  );
 }
 
 sub search {
@@ -182,20 +227,6 @@ sub search {
           }
         }
       }
-#
-#      $e = xs_edistance($modules{$mod}->{author}, $terms[$index]);
-#      push @{$mm->{reasons}}, 'Author';
-#      push @{$mm->{scores}}, $e;
-#      if (defined $modules{$mod}->{provides}) {
-#        for my $provides (0..@{$modules{$mod}->{provides}}) { 
-#          $e = xs_edistance($modules{$mod}->{provides}->[$provides], $terms[$index]);
-#          push @{$mm->{reasons}}, 'Provides';
-#          push @{$mm->{scores}}, $e;
-#        }
-#      }
-#      $mm->{score} = sum(@{$mm->{scores}}) / scalar(@{$mm->{scores}});
-#      $max_reasons = scalar(@{$mm->{reasons}}) if 
-#        scalar($mm->{reasons}) > ($max_reasons || -1);
     }
   }
 

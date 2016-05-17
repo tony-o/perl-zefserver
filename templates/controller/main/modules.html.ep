@@ -1,4 +1,5 @@
 %layout 'wrapper';
+%use POSIX;
 %my $stash = $self->stash->{'container'};
 %=include 'partials/menu';
       <div class="container">
@@ -43,7 +44,11 @@
                 </a>
               </td>
               <td>
+                <% if (exists $row->{owner} && defined $row->{owner}) { %>
+                <a href="/profile/<%= $row->{owner} %>">
+                <% } else {%>
                 <a href="<%= $urli %>">
+                <% } %>
                   <%= $row->{'owner'} %>
                 </a>
               </td>
@@ -61,5 +66,27 @@
             </tr>
 % }
           </table>
+          %my $page = $self->param('page');
+          %$page = $page ~~ /^\d+$/ ? $page : 0;
+          <div class="text-center">
+            <nav>
+              <ul class="pagination pagination-lg">
+                %if ($page > 0) {
+                <li>
+                  <a href="/modules/<%= $page - 1 %>">
+                    <span aria-hidden="true">Prev</span>
+                  </a>
+                </li>
+                %}
+                %if ($page < floor $stash->{pages}) {
+                <li>
+                  <a href="/modules/<%= $page + 1 %>">
+                    <span aria-hidden="true">Next</span>
+                  </a>
+                </li>
+               %} 
+              </ul>
+            </nav>
+          </div>
         </div>
       </div> 

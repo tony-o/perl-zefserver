@@ -29,6 +29,7 @@
             <th>Name</th>
             <th>Author</th>
             <th>Submitted</th>
+            <th>Updated</th>
           </tr>
         %my $uid = 0;
         %my $row;
@@ -44,13 +45,22 @@
                 </a>
               </td>
               <td>
+                <% if (exists $row->{owner} && defined $row->{owner}) { %>
+                <a href="/profile/<%= $row->{owner} %>">
+                <% } else {%>
                 <a href="<%= $urli %>">
+                <% } %>
                   <%= $row->{'owner'} %>
                 </a>
               </td>
               <td>
                 <a href="<%= $urli %>">
                   <%= $row->{'submitted'} %>
+                </a>
+              </td>
+              <td>
+                <a href="<%= $urli %>">
+                  <%= $row->{'action'} %>
                 </a>
               </td>
             </tr>

@@ -14,8 +14,6 @@
 
         <h4>to-do</h4>
         <ul>
-          <li>user pages so you can see who did whatever modules</li>
-          <li>make search work, idiot</li>
           <li>paginate search</li>
         </ul>
       </div>

@@ -4,8 +4,50 @@
 %=include 'partials/menu';
       <div class="container">
 
-        <h3><%= $user->{'username'} %></h3>
-        <h4>X modules authored by <%= $user->{'username'} %></h4>
+        <h3><%= $stash->{author} %></h3>
+        <h4><%= scalar @{$stash->{modules}} %> modules authored</h4>
 
+        <table class="table table-striped table-hover table-condensed">
+          <tr>
+            <th>Name</th>
+            <th>Author</th>
+            <th>Submitted</th>
+            <th>Updated</th>
+          </tr>
+        %my $uid = 0;
+        %my $row;
+        %foreach my $result (@{$stash->{modules}}) { 
+          %$row = $result->{data};
+          %next unless defined $row && ref($row) eq 'HASH';
+          %my $urli = '/modules/' . (exists $row->{owner} && defined $row->{owner} ? $row->{'owner'} : 'not in meta') . '/' . $row->{name}; 
+            <tr>
+              <td>
+                <a href="<%= $urli %>">
+                  <img src="/img/zefcon<%= $uid++ % 5 %>.png" class="<%if (exists $row->{'icon'}) {%>img-circle<%}%>" style="height: 1.5em;"/>
+                  <%= $row->{'name'} %>
+                </a>
+              </td>
+              <td>
+                <% if (exists $row->{owner} && defined $row->{owner}) { %>
+                <a href="/profile/<%= $row->{owner} %>">
+                <% } else {%>
+                <a href="<%= $urli %>">
+                <% } %>
+                  <%= $row->{'owner'} %>
+                </a>
+              </td>
+              <td>
+                <a href="<%= $urli %>">
+                  <%= $row->{'submitted'} %>
+                </a>
+              </td>
+              <td>
+                <a href="<%= $urli %>">
+                  <%= $row->{'action'} %>
+                </a>
+            </tr>
+        %}
+        </table>
+      </div>
 
       </div>

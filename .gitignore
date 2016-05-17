@@ -9,3 +9,4 @@ www/
 log/*
 upstreams/ecosystem/modules/
 upstreams/ecosystem/provides.json
+upstreams/ecosystem/logs/*

@@ -13,10 +13,10 @@ my $abs = dirname(abs_path($0));
 my $cfg = eval slurp "$abs/../../zef.conf";
 my $dbh = DBI->connect("dbi:Pg:dbname=" . $cfg->{db}->{db_name}, $cfg->{db}->{username}, $cfg->{db}->{password});
 my $upd = $dbh->prepare("UPDATE packages SET readme = '' WHERE name = ?") or die $dbh->errstr;
+my $dts = $dbh->prepare("UPDATE packages SET action = ?, submitted = ? WHERE name = ?") or die $dbh->errstr;
 
 
 my $url = 'http://git.io/vf5FV';
-my $abs = dirname(abs_path($0));
 
 my @list = split("\n", get($url));
 my $prov;
@@ -65,14 +65,16 @@ for my $src (keys $prov->{modules}) {
   my $output;
   $output = `git clone '$prov->{modules}->{$src}->{repo}' '$prov->{modules}->{$src}->{dir}'`
     unless -e $prov->{modules}->{$src}->{dir};
-  `cd '$prov->{modules}->{$src}->{dir}';`;
-  my $xyz = `git pull`;
+  my $cd = "cd '$prov->{modules}->{$src}->{dir}'; ";
+  my $xyz = `$cd git pull`;
   if (not $xyz =~ /Already up\-to\-date\./) {
     try { 
-      print "Updating $src\n";
       $upd->execute($src); 
     } catch {
       say $_; 
     }
   }
+  my $lc = `$cd git log -1 --format=%cd *`;
+  my $fc = `$cd git log --reverse --format=%cd * | head -n1`;
+  $dts->execute($lc, $fc, $src);
 }

@@ -8,9 +8,10 @@ sub setup {
 
   $r->route('/')->to('Controller::Main#home');
   $r->route('/modules')->to('Controller::Main#modules');
+  $r->route('/modules/#page')->to('Controller::Main#modules');
   $r->route('/modules/#author/#module')->to('Controller::Main#module');
   $r->route('/getfresh')->to('Controller::Main#getfresh');
-  $r->route('/profile')->to('Controller::Main#profile');
+  $r->route('/profile/#author')->to('Controller::Main#profile');
   $r->route('/logout')->to('Controller::Main#logout');
   $r->route('/search')->to('Controller::Main#search');
 
