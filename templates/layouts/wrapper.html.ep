@@ -10,8 +10,9 @@
 
     <title><%= $stash->{'title'} || 'It is fresh.' %></title>
 
+    <link href="/opensearch.xml" rel="search" type="application/opensearchdescription+xml" title="P6 Module Search"/>
     <link href="/css/bootstrap.min.css" rel="stylesheet"/>
-    <link href="//fonts.googleapis.com/css?family=Roboto+Condensed:400,300,300italic,400italic,700,700italic" rel="stylesheet" type="text/css">
+    <link href="//fonts.googleapis.com/css?family=Roboto+Condensed:400,300,300italic,400italic,700,700italic" rel="stylesheet" type="text/css"/>
     <link href="//fonts.googleapis.com/css?family=News+Cycle" rel="stylesheet" type="text/css"/>
     <link href="//fonts.googleapis.com/css?family=Anton" rel="stylesheet" type="text/css"/>
     <link href="//fonts.googleapis.com/css?family=Open+Sans:400,300,300italic,400italic,600,600italic,700,700italic,800,800italic" rel="stylesheet" type="text/css">
@@ -29,7 +30,7 @@
 
     <div class="container">
       <footer>
-        <i class="glyphicon glyphicon-copyright-mark"></i><strong> 2016, zef</strong>
+        <i class="glyphicon glyphicon-copyright-mark"></i><strong> <%= (localtime)[5] + 1900 %>, zef</strong>
       </footer>
     </div>
     <!-- Bootstrap core JavaScript
@@ -42,5 +43,13 @@
     %for my $url (@{$stash->{'script'}}) {
     <script src="<%==$url%>"></script>
     %}
+		<script>
+			(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+			(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+			m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+			})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+			ga('create', 'UA-78880597-1', 'auto');
+			ga('send', 'pageview');
+		</script>
   </body>
 </html>

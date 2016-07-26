@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?> 
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">
+  <ShortName>P6 Modules</ShortName>
+  <Description>Pler6 Module Search on modules.zef.pm</Description>
+  <Url type="text/html" method="get" template="http://modules.zef.pm/search?terms={searchTerms}"/>
+  <Image width="16" height="16">http://modules.zef.pm/favicon.ico</Image>
+  <InputEncoding>UTF-8</InputEncoding>
+  <SearchForm>http://modules.zef.pm/modules</SearchForm>
+</OpenSearchDescription>

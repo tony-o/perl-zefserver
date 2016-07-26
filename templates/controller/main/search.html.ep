@@ -1,4 +1,5 @@
 %layout 'wrapper';
+%use JSON::Tiny qw<decode_json>;
 %my $stash = $self->stash->{'container'};
 %=include 'partials/menu';
       <div class="container">
@@ -30,6 +31,11 @@
             <th>Author</th>
             <th>Submitted</th>
             <th>Updated</th>
+            <th>Status</th>
+            <th>Issues</th>
+            <th>Stars</th>
+            <th>Forks</th>
+            <th align="center">Dependencies</th>
           </tr>
         %my $uid = 0;
         %my $row;
@@ -40,7 +46,11 @@
             <tr>
               <td>
                 <a href="<%= $urli %>">
-                  <img src="/img/zefcon<%= $uid++ % 5 %>.png" class="<%if (exists $row->{'icon'}) {%>img-circle<%}%>" style="height: 1.5em;"/>
+                  %if (defined $row->{logo} && $row->{logo} ne '' && $row->{logo} ne '.png') {
+                  <img src="/img/logos/<%= $row->{logo} %>" style="height: 1.5em;" />
+                  %} else {
+                  <img src="/img/zefcon<%= $uid++ % 5 %>.png" class="<%if (exists $row->{'icon'}) {%>img-circle<%}%>" style="height: 1.5em"/>
+                  %}
                   <%= $row->{'name'} %>
                 </a>
               </td>
@@ -62,6 +72,23 @@
                 <a href="<%= $urli %>">
                   <%= $row->{'action'} %>
                 </a>
+              </td>
+              <td class="build-<%=$row->{buildstatus}%>">
+                %= $row->{'buildstatus'}
+              </td>
+              <td>
+                %= $row->{openissues}
+              </td>
+              <td>
+                %= $row->{stars}
+              </td>
+              <td>
+                %= $row->{forks}
+              </td>
+              <td align="center">
+                %my $deps = decode_json $row->{dependencies} || '{}';
+                %my @depa = ref $deps eq 'HASH' ? keys %{$deps} : ref $deps eq 'ARRAY' ? @{$deps} : [];
+                %= scalar @depa
               </td>
             </tr>
         %}

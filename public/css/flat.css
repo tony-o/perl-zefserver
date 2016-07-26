@@ -13,3 +13,21 @@
 a, table a:not(.btn), .table a:not(.btn) {
   text-decoration: none;
 }
+
+.build-passed {
+  background: #00aa55;
+  text-align: center;
+  color:      #fff;
+}
+
+.build-unknown {
+  background: #708090;
+  text-align: center;
+  color:      #fff;
+}
+
+.build-failed, .build-errored {
+  background: #e74c3c;
+  text-align: center;
+  color:      #fff;
+}

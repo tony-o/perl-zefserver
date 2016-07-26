@@ -3,6 +3,7 @@ use Mojo::Base qw<Mojolicious::Controller>;
 use Text::Levenshtein::Damerau::XS qw/xs_edistance/;
 use Text::Markdown qw<markdown>;
 use Digest::SHA qw{sha256_hex};
+use experimental 'smartmatch';
 use File::Slurp qw<slurp>;
 use HTTP::Request::Common;
 use List::Util qw<sum>;
@@ -10,6 +11,7 @@ use Cwd qw<abs_path>;
 use Text::ParseWords;
 use Fcntl qw<:mode>;
 use LWP::UserAgent;
+use LWP::Simple;
 use JSON::Tiny qw<decode_json>;
 use File::Spec;
 use Try::Tiny;
@@ -20,11 +22,31 @@ our $X;
 
 sub home {
   my $self = shift;
+  my $top10 = {
+    ordr => [qw<auth updt>],
+    stmt => {
+      auth => $self->app->db->prepare('select distinct owner, count(*) count from packages where owner <> \'not in meta\' and unavailable = 0 group by owner order by count desc limit 10'),
+      updt => $self->app->db->prepare('select name, owner from packages where unavailable = 0 order by action desc limit 10'),
+    },
+    verb => {
+      auth => 'Most contrib authors',
+      updt => 'Recently updated',
+    },
+    heads => {
+      auth => [qw<Owner Count>],
+      updt => [qw<Name Owner>],
+    },
+  };
+
+  for my $x (keys %{$top10->{stmt}}) {
+    $top10->{stmt}->{$x}->execute;
+  }
 
   $self->stash(
     container => {
       title  => 'Main Street',
       active => '/',
+      top10  => $top10,
     },
   );
 }
@@ -41,6 +63,8 @@ sub modules {
       to_char(packages.action, \'DD Mon YYYY\') as action 
     from
       packages
+    where
+      unavailable = 0
     order by 
       packages.action desc 
     limit $size
@@ -52,12 +76,14 @@ ESQL
       count(*) c
     from
       packages
+    where unavailable = 0
 ESQL
 );
 
   my @data;
 
   $stmt->execute;
+  my $first = 0;
   while (my $hash = $stmt->fetchrow_hashref) {
     updatereadme($self, $hash);
     push @data, $hash;
@@ -78,7 +104,7 @@ ESQL
 
 sub module {
   my $self = shift;
-  my $stmt = $self->app->db->prepare('select p2.*, to_char(p2.submitted, \'DD Mon YYYY\') submitted from (select MAX(submitted), name, owner from packages group by name, owner) p1 left join (select * from packages) p2 on p2.submitted = p1.max and p2.name = p1.name WHERE p2.name = ? and p2.owner = ?;');
+  my $stmt = $self->app->db->prepare('select p2.*, to_char(p2.submitted, \'DD Mon YYYY\') submitted from (select MAX(submitted), name, owner from packages group by name, owner) p1 left join (select * from packages) p2 on p2.submitted = p1.max and p2.name = p1.name WHERE p2.name = ? and p2.owner = ? and p2.unavailable = 0;');
   $stmt->execute($self->stash->{'module'}, $self->stash->{'author'});
   my $data = $stmt->fetchrow_hashref;
   if (defined $data) {
@@ -168,7 +194,7 @@ sub profile {
 
   my %modules  = %{$X->{modules}};
   my @authored;
-  my $stmt = $self->app->db->prepare('select * from packages where name = ? limit 1;');
+  my $stmt = $self->app->db->prepare('select * from packages where name = ? and unavailable = 0 limit 1;');
   for my $mod (keys %modules) {
     next unless exists 
       $modules{$mod}->{author} 
@@ -240,7 +266,7 @@ sub search {
     return $as->[0] <=> $bs->[0];
   } @results;
   @results = splice @results, 0, 50;
-  my $stmt = $self->app->db->prepare('select * from packages where name = ? limit 1;');
+  my $stmt = $self->app->db->prepare('select *, to_char(packages.submitted, \'DD Mon YYYY\') submitted, to_char(packages.action, \'DD Mon YYYY\') as action from packages where name = ? and unavailable = 0 limit 1;');
   map { 
     $_ = $scores{$_}; 
     $stmt->execute($_->{module});
@@ -391,6 +417,18 @@ sub update_meta {
   return if defined $LTIME && time - $LTIME < 60 * 5;
   $X = decode_json slurp($self->config->{module_dir} . '/../provides.json'); 
   $LTIME = time;
+}
+
+sub checktravis {
+  my ($self, $repo, $hash) = @_;
+
+  my $str  = get("https://api.travis-ci.org/repositories$repo.json");
+  my $json = try {
+    decode_json $str;
+  } || { error => "Not found" };
+  use Data::Dumper; print Dumper $json;
+  return 
+  $json;
 }
 
 { smoke => 'everyday' };

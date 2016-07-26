@@ -104,12 +104,10 @@
             </div>
             <div class="row">
               <div class="col-xs-4">
-                <strong>Build Status</strong>
+                <strong>Build</strong>
               </div>
-              <div class="col-xs-8">
-                %my @a = qw<stoked jacked ripped busted fresh>;
-                %my $show = int(rand(scalar(@a)));
-                %= $a[$show]
+              <div class="col-xs-8 build-<%= $stash->{'data'}->{'buildstatus'} %>">
+                %= $stash->{'data'}->{'buildstatus'}
               </div>
             </div>
             <div class="row">
@@ -128,12 +126,26 @@
             <h4>Stats</h4>
             <div class="row">
               <div class="col-xs-4">
-                <strong>Downloads</strong>
+                <strong>Open Issues</strong>
               </div>
               <div class="col-xs-8">
-                %my $num = 1 + int(rand(5000000 - 1));
-                %$num =~ s/(\d)(?=(\d{3})+(\D|$))/$1\,/g;
-                %= $num
+                %= $stash->{data}->{openissues}
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-xs-4">
+                <strong>Stars</strong>
+              </div>
+              <div class="col-xs-8">
+                %= $stash->{data}->{stars}
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-xs-4">
+                <strong>Forks</strong>
+              </div>
+              <div class="col-xs-8">
+                %= $stash->{data}->{forks}
               </div>
             </div>
           </div>

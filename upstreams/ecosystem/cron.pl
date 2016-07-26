@@ -13,7 +13,7 @@ my $abs = dirname(abs_path($0));
 my $cfg = eval slurp "$abs/../../zef.conf";
 my $dbh = DBI->connect("dbi:Pg:dbname=" . $cfg->{db}->{db_name}, $cfg->{db}->{username}, $cfg->{db}->{password});
 my $upd = $dbh->prepare("UPDATE packages SET readme = '' WHERE name = ?") or die $dbh->errstr;
-my $dts = $dbh->prepare("UPDATE packages SET action = ?, submitted = ? WHERE name = ?") or die $dbh->errstr;
+my $dts = $dbh->prepare("UPDATE packages SET action = ?, submitted = ?, logo = ? WHERE name = ?") or die $dbh->errstr;
 
 
 my $url = 'http://git.io/vf5FV';
@@ -52,6 +52,7 @@ foreach my $meta (@list) {
     $prov->{modules}->{$data->{name}}->{repo} = $data->{'source-url'};
     $prov->{modules}->{$data->{name}}->{dir} = 'modules/' . cfname($data->{name});
     $prov->{modules}->{$data->{name}}->{version} = $data->{version};
+    $prov->{modules}->{$data->{name}}->{depends} = encode_json $data->{depends};
     say "Processed $data->{name}";
     1;
   } or next;
@@ -76,5 +77,11 @@ for my $src (keys $prov->{modules}) {
   }
   my $lc = `$cd git log -1 --format=%cd *`;
   my $fc = `$cd git log --reverse --format=%cd * | head -n1`;
-  $dts->execute($lc, $fc, $src);
+  my $md = `$cd md5sum logotype/logo_32x32.png 2>/dev/null`;
+  $md = substr $md, 0, 32;
+  $md =~ s/^\s+|\s+$//g;
+  if ($md ne '') {
+    `$cd cp logotype/logo_32x32.png ../../../../public/img/logos/$md.png`;
+  }
+  $dts->execute($lc, $fc, $md ne '' ? "$md.png" : '', $src);
 }

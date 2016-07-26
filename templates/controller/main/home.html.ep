@@ -1,4 +1,6 @@
 %layout 'wrapper';
+%my $stash = $self->stash->{'container'};
+%use List::MoreUtils qw<natatime>;
 %=include 'partials/menu';
       <div class="container">
 
@@ -12,8 +14,37 @@
         </p>
 
 
-        <h4>to-do</h4>
-        <ul>
-          <li>paginate search</li>
-        </ul>
+        <p>If you think of some cool stuff you'd like to see here, let tony-o know in #perl6</p>
+        <table class="table">
+        %my $it  = natatime(2, @{$stash->{top10}->{ordr}});
+        %my $t10 = $stash->{top10}; 
+        %while (my ($x, $y) = $it->()) {
+          <tr>
+            %for my $z ($x, $y) {
+            <td width="50%">
+              <h3><%= $t10->{verb}->{$z} %></h3>
+              <table class="table table-striped">
+                <tr>
+                %my @heads = @{$t10->{heads}->{$z}};
+                %for my $head (@heads) {
+                  <th>
+                    %= $head
+                  </th>
+                %}
+                </tr>
+              %while (my $ref = $t10->{stmt}->{$z}->fetchrow_hashref) {
+                <tr>
+                %for my $col (@heads) {
+                  <td style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; table-layout:fixed;">
+                    %= $ref->{lc $col}
+                  </td>
+                %}
+                </tr>
+              %}
+              </table>
+            </td>
+            %}
+          </tr> 
+        %}
+        </table>
       </div>
