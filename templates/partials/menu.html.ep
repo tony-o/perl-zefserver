@@ -19,6 +19,9 @@
               <li class="<%= ($stash->{'active'} // '') eq '/modules' ? 'active' : '' %>">
                 <a href="/modules">Modules</a>
               </li>
+              <li class="<%= ($stash->{'active'} // '') eq '/about' ? 'active' : '' %>">
+                <a href="/about">About</a>
+              </li>
             </ul>
             <!--ul class="nav navbar-nav navbar-right">
 %if (defined $self->session->{'user'}) {

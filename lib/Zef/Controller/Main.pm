@@ -287,6 +287,15 @@ sub logout {
   $self->redirect_to('/');
 }
 
+sub about {
+  my $self = shift;
+  $self->stash(
+    container => { 
+      active => '/about',
+    }
+  );
+}
+
 sub getfresh {
   my $self = shift;
   my $error;

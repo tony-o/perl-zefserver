@@ -1,0 +1,8 @@
+%layout 'wrapper';
+%my $stash = $self->stash->{'container'};
+%use List::MoreUtils qw<natatime>;
+%=include 'partials/menu';
+      <div class="container">
+        <p>Written by Tony O'Dell</p>
+        <p>Repository can be found <a href="https://github.com/tony-o/perl-zefserver">here</a></p>
+      </div>

@@ -37,6 +37,41 @@ sub p {
   };
 }
 
+sub module_info {
+  my ($self) = @_;
+  my $data;
+
+  $data = p($self, ['module'], 'Please provide the module name you\'re searching for');
+  return 1 if ref($data) ne 'HASH';
+  my $sql  = 'select * from version where module = ?';
+  $sql .= ' and version = ?' if defined $data->{version};
+  $sql .= ' and author = ?' if defined $data->{auth};
+  $sql .= ' order by date desc';
+  my $stmt = $self->app->db->prepare($sql);
+  my @args = $data->{module};
+  CORE::push @args, $data->{version} if defined $data->{version};
+  CORE::push @args, $data->{auth} if defined $data->{auth};
+  $stmt->execute(@args);
+  my @ret;
+  my %pushed;
+  while (my $row = $stmt->fetchrow_hashref) {
+    next if defined $pushed{$row->{module}};
+    $pushed{$row->{module}} = 1;
+
+    CORE::push @ret, {
+      'short-name' => $row->{module},
+      'ver' => $row->{version},
+      'auth' => $row->{author},
+      'commit' => $row->{commit_id},
+    };
+  }
+  $self->render(json => {
+    success => 1,
+    data => \@ret,
+  });
+  return 1;
+}
+
 sub register {
   my ($self) = @_;
   my $data;

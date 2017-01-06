@@ -6,6 +6,7 @@ www/
 *.crt
 *.key
 *.csr
+*.swp
 log/*
 upstreams/ecosystem/modules/
 upstreams/ecosystem/provides.json

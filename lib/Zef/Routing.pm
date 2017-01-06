@@ -14,6 +14,7 @@ sub setup {
   $r->route('/profile/#author')->to('Controller::Main#profile');
   $r->route('/logout')->to('Controller::Main#logout');
   $r->route('/search')->to('Controller::Main#search');
+  $r->route('/about')->to('Controller::Main#about');
 
   $api->route('/login')->to('Controller::API#login');
   $api->route('/register')->to('Controller::API#register');
@@ -21,6 +22,7 @@ sub setup {
   $api->route('/search')->to('Controller::API#search');
   $api->route('/download')->to('Controller::API#download');
   $api->route('/fetch_upstream')->to('Controller::API#search_upstream');
+  $api->route('/module-search')->to('Controller::API#module_info');
 }
 
 { 420 => 'everyday' };
