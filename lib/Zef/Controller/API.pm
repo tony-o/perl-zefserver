@@ -14,11 +14,11 @@ use File::Find;
 use Try::Tiny;
 
 sub p {
-  my ($s,$k,$e) = @_;
+  my ($s,$k,$e,$useqs) = @_;
   try {
     my $d;
     try { 
-      $d = decode_json($s->req->body);
+      $d = decode_json($useqs ? $s->req->param('query') : $s->req->body);
     };
     die "Provide some JSON data\n" if ! defined($d) || $d eq '';
     map {
@@ -41,14 +41,16 @@ sub module_info {
   my ($self) = @_;
   my $data;
 
-  $data = p($self, ['module'], 'Please provide the module name you\'re searching for');
+  $data = p($self, ['distribution'], 'Please provide the module name you\'re searching for', defined($self->req->body) && $self->req->body eq '' ? 1 : 0);
   return 1 if ref($data) ne 'HASH';
-  my $sql  = 'select * from version where module = ?';
+  my $sql  = 'select * from version where (module LIKE ? or meta LIKE ?) ';
   $sql .= ' and version = ?' if defined $data->{version};
   $sql .= ' and author = ?' if defined $data->{auth};
   $sql .= ' order by date desc';
   my $stmt = $self->app->db->prepare($sql);
-  my @args = $data->{module};
+  my @args;
+  CORE::push @args, '%' . $data->{distribution} . '%';
+  CORE::push @args, '%"%' . $data->{distribution} . '%"%';
   CORE::push @args, $data->{version} if defined $data->{version};
   CORE::push @args, $data->{auth} if defined $data->{auth};
   $stmt->execute(@args);
@@ -58,12 +60,7 @@ sub module_info {
     next if defined $pushed{$row->{module}};
     $pushed{$row->{module}} = 1;
 
-    CORE::push @ret, {
-      'short-name' => $row->{module},
-      'ver' => $row->{version},
-      'auth' => $row->{author},
-      'commit' => $row->{commit_id},
-    };
+    CORE::push @ret, decode_json($row->{meta}), ;
   }
   $self->render(json => {
     success => 1,
@@ -84,7 +81,7 @@ sub register {
 
   if ($rowc) {
     $self->render(json => {
-      failure => 1,
+      success => 0,
       reason  => 'Username already in use',
     });
     return 1;
@@ -113,7 +110,7 @@ sub login {
   my ($cnt) = $stmt->fetchrow_array();
   if ($cnt != 1) {
     $self->render(json => {
-      failure => 1,
+      success => 0,
       reason  => 'Couldn\'t find user/pass combo', #. $DBI::errstr,
     });
     return 1;
@@ -132,61 +129,61 @@ sub login {
     1;
   } catch {
     $self->render(json => {
-      failure => 1,
+      success => 0,
     });
     1;
   };
 }
 
-sub download {
-  my ($self) = @_;
-  my ($data);
-  $data = p($self, ['name'], "Invalid request, need {name:<>}\n");
-  return 1 if ref($data) ne 'HASH';
-
-  my $stmt = $self->app->db->prepare('select id from packages where name = ? ' . (defined $data->{'version'} ? ' AND version = ? ' : '') . (defined $data->{'author'} ? ' AND owner = ?' : '') . ' ORDER BY ID desc');
-  my @params = $data->{'name'},;
-  push @params, $data->{'version'} if defined $data->{'version'};
-  push @params, $data->{'author'} if defined $data->{'author'};
-
-  $stmt->execute(@params);
-  my ($id) = $stmt->fetchrow_array();
-
-  my $dir;
-
-  if (!(defined $id && $id ne '')) {
-    $dir = fetch_upstream($data->{name}, $self);
-    if (!defined( $dir ) || $dir eq '') {
-      $self->render(json => {
-        error => 'Couldn\'t find module or module/author/version combination',
-      });
-      return 1;
-    }
-  } else {
-    $dir = $self->config->{'module_dir'} . $id;
-  }
-
-  
-  my @files;
-  find(
-    sub { 
-      return if -d;
-      my $f = $File::Find::name;
-      CORE::push @files, substr($File::Find::name, length $dir); 
-    },
-    $dir
-  );
-
-  $data = '';
-  for my $file (@files) {
-    next if $file =~ m/\.git/;
-    my $buff = encode_base64(slurp($dir . $file), '');
-    my $mode = (stat($dir . $file))[2];;
-    $data .= "$mode:$file\r\n$buff\r\n";
-  }
-
-  $self->render(text => $data);
-}
+#sub download {
+#  my ($self) = @_;
+#  my ($data);
+#  $data = p($self, ['name'], "Invalid request, need {name:<>}\n");
+#  return 1 if ref($data) ne 'HASH';
+#
+#  my $stmt = $self->app->db->prepare('select id from packages where name = ? ' . (defined $data->{'version'} ? ' AND version = ? ' : '') . (defined $data->{'author'} ? ' AND owner = ?' : '') . ' ORDER BY ID desc');
+#  my @params = $data->{'name'},;
+#  push @params, $data->{'version'} if defined $data->{'version'};
+#  push @params, $data->{'author'} if defined $data->{'author'};
+#
+#  $stmt->execute(@params);
+#  my ($id) = $stmt->fetchrow_array();
+#
+#  my $dir;
+#
+#  if (!(defined $id && $id ne '')) {
+#    $dir = fetch_upstream($data->{name}, $self);
+#    if (!defined( $dir ) || $dir eq '') {
+#      $self->render(json => {
+#        error => 'Couldn\'t find module or module/author/version combination',
+#      });
+#      return 1;
+#    }
+#  } else {
+#    $dir = $self->config->{'module_dir'} . $id;
+#  }
+#
+#  
+#  my @files;
+#  find(
+#    sub { 
+#      return if -d;
+#      my $f = $File::Find::name;
+#      CORE::push @files, substr($File::Find::name, length $dir); 
+#    },
+#    $dir
+#  );
+#
+#  $data = '';
+#  for my $file (@files) {
+#    next if $file =~ m/\.git/;
+#    my $buff = encode_base64(slurp($dir . $file), '');
+#    my $mode = (stat($dir . $file))[2];;
+#    $data .= "$mode:$file\r\n$buff\r\n";
+#  }
+#
+#  $self->render(text => $data);
+#}
 
 sub push {
   my ($self) = @_;

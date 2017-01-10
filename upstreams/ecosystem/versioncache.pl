@@ -14,8 +14,8 @@ my $abs = dirname(abs_path($0));
 my $cfg = eval slurp "$abs/../../zef.conf";
 my $dbh = DBI->connect("dbi:Pg:dbname=" . $cfg->{db}->{db_name}, $cfg->{db}->{username}, $cfg->{db}->{password});
 
-my $ins = $dbh->prepare("INSERT INTO version (module, version, date, author, commit_id) VALUES (?, ?, ?, ?, ?)") or die $dbh->errstr;
-my $insn = $dbh->prepare("INSERT INTO version (module, version, date, author, commit_id) VALUES (?, ?, ?, NULL, ?)") or die $dbh->errstr;
+my $ins = $dbh->prepare("INSERT INTO version (module, version, date, author, commit_id, meta) VALUES (?, ?, ?, ?, ?, ?)") or die $dbh->errstr;
+my $insn = $dbh->prepare("INSERT INTO version (module, version, date, author, commit_id, meta) VALUES (?, ?, ?, ?, NULL, ?)") or die $dbh->errstr;
 my $cnt = $dbh->prepare("SELECT count(*) c FROM version WHERE module = ? and  version = ? and  date = ? and  author = ? LIMIT 1") or die $dbh->errstr;
 my $cntn = $dbh->prepare("SELECT count(*) c FROM version WHERE module = ? and  version = ? and  date = ? LIMIT 1") or die $dbh->errstr;
 
@@ -76,6 +76,7 @@ foreach my $mod (sort keys %$modules) {
       commit_id => $commit,
       module => $mod,
       version => $ver,
+      meta => encode_json($meta),
     };
   }
 }
@@ -88,7 +89,7 @@ foreach my $mod (@combos) {
     );
     $result = $cnt->fetchrow_hashref();
     $ins->execute(
-      $mod->{module}, $mod->{version}, $mod->{date}->strftime('%Y-%m-%d'), $mod->{author}, $mod->{commit}
+      $mod->{module}, $mod->{version}, $mod->{date}->strftime('%Y-%m-%d'), $mod->{author}, $mod->{commit}, $mod->{meta},
     ) if $result->{c} eq '0';
   } else {
     $cntn->execute(
@@ -96,7 +97,7 @@ foreach my $mod (@combos) {
     );
     $result = $cntn->fetchrow_hashref();
     $insn->execute(
-      $mod->{module}, $mod->{version}, $mod->{date}->strftime('%Y-%m-%d'), $mod->{commit}
+      $mod->{module}, $mod->{version}, $mod->{date}->strftime('%Y-%m-%d'), $mod->{commit}, $mod->{meta},
     ) if $result->{c} eq '0';
   }
 

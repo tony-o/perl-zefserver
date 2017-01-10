@@ -18,9 +18,9 @@ sub setup {
 
   $api->route('/login')->to('Controller::API#login');
   $api->route('/register')->to('Controller::API#register');
-  $api->route('/push')->to('Controller::API#push');
+#  $api->route('/push')->to('Controller::API#push');
   $api->route('/search')->to('Controller::API#search');
-  $api->route('/download')->to('Controller::API#download');
+#  $api->route('/download')->to('Controller::API#download');
   $api->route('/fetch_upstream')->to('Controller::API#search_upstream');
   $api->route('/module-search')->to('Controller::API#module_info');
 }
