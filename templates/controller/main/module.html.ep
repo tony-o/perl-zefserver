@@ -58,9 +58,15 @@
               </div> 
               %if (defined $stash->{fdata} && $stash->{fdata} ne '') {
               <h3><%= $stash->{rfile} %></h3>
-              <pre><code><%==
-                $stash->{fdata}
+              % if ($stash->{fdata}->{type} eq 'image') {
+                <img src="<%== $stash->{fdata}->{path} %>" />
+              % } elsif ($stash->{fdata}->{type} eq 'markdown') {
+              %== $stash->{fdata}->{path}
+              % } else {
+              <pre><code><%=
+                $stash->{fdata}->{path}
               %></code></pre>
+              % }
               %}
             </div>
             <div id="buildstats" class="hidden">

@@ -8,6 +8,7 @@ www/
 *.csr
 *.swp
 log/*
+public/module_data/*
 upstreams/ecosystem/modules/
 upstreams/ecosystem/provides.json
 upstreams/ecosystem/logs/*

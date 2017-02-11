@@ -70,13 +70,18 @@ foreach my $mod (sort keys %$modules) {
     $date =~ s/\d+:\d+:\d+\s//g;
     $date =~ s/\s(\-|\+)\d+\s*$//g;
     $date = Time::Piece->strptime($date, '%b %d %Y');
+    #in case META.info changed
+    foreach my $mf (qw<META.info META6.json META.json META6.info>) {
+      $meta = `git show $commit:$mf 2>&1`;
+      last if $meta !~ m/^fatal/;
+    }
     push @combos, {
       date => $date,
       author => $auth,
-      commit_id => $commit,
+      commit => $commit,
       module => $mod,
       version => $ver,
-      meta => encode_json($meta),
+      meta => $meta,
     };
   }
 }

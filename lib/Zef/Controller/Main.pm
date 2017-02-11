@@ -1,5 +1,6 @@
 package Zef::Controller::Main;
 use Mojo::Base qw<Mojolicious::Controller>;
+use Digest::SHA qw<sha256_hex>;
 use Text::Levenshtein::Damerau::XS qw/xs_edistance/;
 use Text::Markdown qw<markdown>;
 use Digest::SHA qw{sha256_hex};
@@ -13,6 +14,7 @@ use Fcntl qw<:mode>;
 use LWP::UserAgent;
 use LWP::Simple;
 use JSON::Tiny qw<decode_json>;
+use File::Copy;
 use File::Spec;
 use Try::Tiny;
 use Pod::Html;
@@ -147,7 +149,28 @@ sub module {
 
   try {
     if (defined $rfil) {
-      $fdata = read_file($self, $data->{name}, "$cfdr/$rfil");
+      if ($rfil =~ m/\.(png|jpg|jpeg|gif)$/) {
+        my $hash = sha256_hex("$cfdr/$rfil") . "$1";
+        copy("$cfdr/$rfil", "./public/module_data/$hash")
+          unless (-f "./public/module_data/$hash");
+        $fdata = {
+          type => 'image',
+          path => "/module_data/$hash",
+        };
+      } elsif ($rfil =~ m/\.md$/) {
+        my $md = markd(''.slurp("$cfdr/$rfil"), "$cfdr/");
+        $fdata = {
+          type => 'markdown',
+          path => $md,
+        };
+      } else {
+        my $rf = read_file($self, $data->{name}, "$cfdr/$rfil");
+        warn $rf;
+        $fdata = { 
+          type => 'text',
+          path => $rf,
+        };
+      }
     }
   } catch {
     warn $_;
@@ -366,24 +389,62 @@ sub cfname {
   return $m;
 }
 
+sub imgcopy {
+  my ($imagepath) = @_;
+  if ($imagepath =~ /\.(png|jpeg|jpg|gif)$/) {
+    my $hash = sha256_hex($imagepath) . ".$1";
+    copy $imagepath, "./public/module_data/$hash"
+      unless -e "./public/module_data/$hash";
+    return "/module_data/$hash";
+  }
+  return undef;
+} 
+
+sub manglehtmlimgs {
+  my ($html, $fpath) = @_;
+  my @cp;
+  while ($html =~ m/\<img.+?src="(.*?)"/g) {
+    push @cp, "$1";
+  }
+  map {
+    my $relpath = imgcopy $fpath . $_;
+    $html =~ s/src="$_"/src="$relpath"/g;
+  } @cp;
+  $html;
+}
+
+sub markd {
+  my ($md, $path) = @_;
+  return try {
+    my $ua  = LWP::UserAgent->new;
+    my $req = HTTP::Request->new(POST => 'https://api.github.com/markdown/raw');
+    $req->header('Content-Type' => 'text/plain');
+    $req->content($md);
+    my $res = $ua->request($req); 
+    if ($res->is_success) {
+      my $data = $res->content;
+      $data = manglehtmlimgs $data, $path;
+      return $data;
+    }
+    return undef;
+  } catch { 
+    return undef;
+  };
+}
+
 sub updatereadme {
   my ($self, $hash) = @_;
   #warn 'serving cached content' if  defined $hash->{'readme'} && $hash->{'readme'} ne '';
   return if defined $hash->{'readme'} && $hash->{'readme'} ne '';
   my $cnt = $self->config->{module_dir} . '/' . cfname($hash->{'name'}) . '/';
+  my $mpath = $cnt;
   if (-e $cnt . '/README.md') {
     try { 
       $cnt .= 'README.md';
-      my $ua  = LWP::UserAgent->new;
-      my $req = HTTP::Request->new(POST => 'https://api.github.com/markdown/raw');
-      $req->header('Content-Type' => 'text/plain');
-      $req->content("".slurp($cnt));
-      my $res = $ua->request($req); 
-      if ($res->is_success) {
-        $hash->{'readme'} = $res->content;
-        my $stmt = $self->app->db->prepare('update packages set readme = ? where id = ?');
-        $stmt->execute($hash->{'readme'}, $hash->{'id'});
-      }
+      my $md = markd(''.slurp($cnt), $mpath);
+      return unless $md;
+      my $stmt = $self->app->db->prepare('update packages set readme = ? where id = ?');
+      $stmt->execute($hash->{'readme'}, $hash->{'id'});
     } catch {
       warn $_; 
     };
@@ -391,6 +452,7 @@ sub updatereadme {
     try {
       my $data = pod2html($cnt . '/README.pod', '--noheader', '--index', '--quiet', '--noverbose', '--outfile=/tmp/' . $hash->{id});
       $data = slurp '/tmp/' . $hash->{id};
+      $data = manglehtmlimgs $data, $mpath;
       my $stmt = $self->app->db->prepare('update packages set readme = ? where id = ?');
       $stmt->execute($data, $hash->{id});
     } catch {

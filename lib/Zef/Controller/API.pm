@@ -55,16 +55,24 @@ sub module_info {
   CORE::push @args, $data->{auth} if defined $data->{auth};
   $stmt->execute(@args);
   my @ret;
+  my @failures;
   my %pushed;
   while (my $row = $stmt->fetchrow_hashref) {
     next if defined $pushed{$row->{module}};
     $pushed{$row->{module}} = 1;
-
-    CORE::push @ret, decode_json($row->{meta}), ;
+    try { 
+      CORE::push @ret, decode_json($row->{meta}), ;
+    } catch {
+      CORE::push @failures, {
+        distribution => $row->{module},
+        meta => $row->{meta},
+      };
+    };
   }
   $self->render(json => {
     success => 1,
     data => \@ret,
+    failures => \@failures,
   });
   return 1;
 }
