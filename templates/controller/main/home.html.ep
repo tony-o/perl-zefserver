@@ -8,13 +8,12 @@
         <p>
           it's a package manager, use it for great success
         </p>
-        <h2>installation</h2>
-        <p>
-          some installation crap
-        </p>
-
-
         <p>If you think of some cool stuff you'd like to see here, let tony-o know in #perl6</p>
+        <h2>installation</h2>
+        <h3>rakudo brew</h3>
+        <p>
+          <pre><code>rakudobrew build zef</code></pre>
+        </p>
         <table class="table">
         %my $it  = natatime(2, @{$stash->{top10}->{ordr}});
         %my $t10 = $stash->{top10}; 
